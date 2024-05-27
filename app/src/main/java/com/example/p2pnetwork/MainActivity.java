@@ -1,4 +1,3 @@
-// MainActivity.java
 package com.example.p2pnetwork;
 
 import android.content.Intent;
@@ -42,16 +41,33 @@ public class MainActivity extends AppCompatActivity {
         nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         nodesRecyclerView.setAdapter(nodesAdapter);
 
-        joinNetworkButton.setOnClickListener(v -> new Thread(() -> {
+        startMulticastService();
+
+        joinNetworkButton.setOnClickListener(v -> joinNetwork());
+        leaveNetworkButton.setOnClickListener(v -> leaveNetwork());
+        viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
+    }
+
+    private void startMulticastService() {
+        InetAddress ip = NetworkUtils.getIPAddress();
+        int port = NetworkUtils.getAvailablePort();
+
+        if (ip != null && port != -1) {
+            multicastService = new MulticastService(this::updateNodeList, port);
+            multicastService.start();
+        } else {
+            runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
+        }
+    }
+
+    private void joinNetwork() {
+        new Thread(() -> {
             try {
                 InetAddress ip = NetworkUtils.getIPAddress();
                 int port = NetworkUtils.getAvailablePort();
 
                 if (ip != null && port != -1) {
                     node = new ChordNode(ip, port);
-
-                    multicastService = new MulticastService(node, this::updateNodeList, port);
-                    multicastService.start();
 
                     stabilizationService = new StabilizationService(node, multicastService);
                     stabilizationService.start();
@@ -63,19 +79,20 @@ public class MainActivity extends AppCompatActivity {
                         joinNetworkButton.setEnabled(false);
                     });
 
-                    multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
+                    multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {
                     runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }).start());
+        }).start();
+    }
 
-        leaveNetworkButton.setOnClickListener(v -> new Thread(() -> {
-            if (multicastService != null) {
+    private void leaveNetwork() {
+        new Thread(() -> {
+            if (multicastService != null && node != null) {
                 multicastService.sendMulticastMessage("LEAVE," + node.getNodeId() + "," + node.getIp().getHostAddress() + "," + node.getDynamicPort());
-                multicastService.stopService();
                 stabilizationService.stopService();
                 runOnUiThread(() -> {
                     nodeStatus.setText("Node has left the network.");
@@ -84,16 +101,16 @@ public class MainActivity extends AppCompatActivity {
                     joinNetworkButton.setEnabled(true);
                 });
             }
-        }).start());
+        }).start();
+    }
 
-        viewDetailsButton.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, NodeDetailsActivity.class);
-            intent.putExtra("nodeId", node.getNodeId().toString());
-            intent.putExtra("predecessorId", node.getPredecessor() != null ? node.getPredecessor().getNodeId().toString() : "None");
-            intent.putExtra("successorId", node.getSuccessor() != null ? node.getSuccessor().getNodeId().toString() : "None");
-            intent.putExtra("fingerTable", node.getFingerTableAsString());
-            startActivity(intent);
-        });
+    private void viewNodeDetails() {
+        Intent intent = new Intent(MainActivity.this, NodeDetailsActivity.class);
+        intent.putExtra("nodeId", node.getNodeId().toString());
+        intent.putExtra("predecessorId", node.getPredecessor() != null ? node.getPredecessor().getNodeId().toString() : "None");
+        intent.putExtra("successorId", node.getSuccessor() != null ? node.getSuccessor().getNodeId().toString() : "None");
+        intent.putExtra("fingerTable", node.getFingerTableAsString());
+        startActivity(intent);
     }
 
     private void updateNodeList(List<NodeInfo> newNodeList) {

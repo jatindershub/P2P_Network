@@ -15,14 +15,12 @@ public class MulticastService extends Thread {
     private static final int PORT = 5000; // The port for the multicast group
     private MulticastSocket socket;
     private InetAddress group;
-    private ChordNode localNode;
     private List<NodeInfo> nodeList = new CopyOnWriteArrayList<>();
     private Consumer<List<NodeInfo>> nodeListUpdater;
     private int dynamicPort;
     private volatile boolean running = true;
 
-    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
-        this.localNode = localNode;
+    public MulticastService(Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = dynamicPort;
         try {
@@ -63,7 +61,7 @@ public class MulticastService extends Thread {
                 if ("LEAVE".equals(action)) {
                     nodeList.removeIf(node -> node.getNodeId().equals(nodeId));
                     nodeListUpdater.accept(new ArrayList<>(nodeList));
-                } else {
+                } else if ("JOIN".equals(action)) {
                     NodeInfo discoveredNode = new NodeInfo(nodeId, ip, port);
 
                     boolean nodeExists = false;
@@ -78,8 +76,6 @@ public class MulticastService extends Thread {
                         nodeList.add(discoveredNode);
                         nodeListUpdater.accept(new ArrayList<>(nodeList));
                     }
-
-                    localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
                 }
             }
         } catch (UnknownHostException e) {

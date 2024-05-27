@@ -109,14 +109,6 @@ public class ChordNode {
 
     // Method to find the successor of a given id
     public ChordNode findSuccessor(BigInteger id) {
-        if (this == null) {
-            throw new IllegalStateException("The node is not initialized correctly.");
-        }
-
-        if (getSuccessor() == null) {
-            throw new IllegalStateException("The successor is not initialized correctly.");
-        }
-
         if (isInInterval(id, nodeId, getSuccessor().getNodeId()) || id.equals(getSuccessor().getNodeId())) {
             return getSuccessor();
         } else {
@@ -134,6 +126,4 @@ public class ChordNode {
         }
         return this;
     }
-
-    // Other Chord protocol methods...
 }
