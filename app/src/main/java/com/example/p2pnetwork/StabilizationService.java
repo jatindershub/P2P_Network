@@ -3,7 +3,6 @@ package com.example.p2pnetwork;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-
 import java.math.BigInteger;
 
 public class StabilizationService extends Thread {
@@ -36,45 +35,52 @@ public class StabilizationService extends Thread {
     };
 
     private void stabilize() {
-        Log.d(TAG, "Stabilizing node: " + localNode.getNodeId());
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(5000); // Stabilization interval
 
-        // Send out a multicast message to inform other nodes of this node's existence
-        multicastService.sendMulticastMessage(localNode.getNodeId() + "," + localNode.getIp().getHostAddress() + "," + localNode.getDynamicPort());
+                    // Send out a multicast message to inform other nodes of this node's existence
+                    multicastService.sendMulticastMessage("JOIN," + localNode.getNodeId() + "," + localNode.getIp().getHostAddress() + "," + localNode.getDynamicPort());
 
-        // Check and correct the successor and predecessor
-        ChordNode successor = localNode.getSuccessor();
-        if (successor != null) {
-            ChordNode successorPredecessor = successor.getPredecessor();
-            if (successorPredecessor != null && isInInterval(successorPredecessor.getNodeId(), localNode.getNodeId(), successor.getNodeId())) {
-                localNode.setSuccessor(successorPredecessor);
-                Log.d(TAG, "Successor updated to: " + localNode.getSuccessor().getNodeId());
+                    // Check and correct the successor and predecessor
+                    ChordNode successor = localNode.getSuccessor();
+                    if (successor != null) {
+                        ChordNode successorPredecessor = successor.getPredecessor();
+                        if (successorPredecessor != null && isInInterval(successorPredecessor.getNodeId(), localNode.getNodeId(), successor.getNodeId())) {
+                            localNode.setSuccessor(successorPredecessor);
+                        }
+                    } else {
+                        localNode.setSuccessor(localNode);
+                    }
+
+                    ChordNode predecessor = localNode.getPredecessor();
+                    if (predecessor != null) {
+                        ChordNode predecessorSuccessor = predecessor.getSuccessor();
+                        if (predecessorSuccessor != null && isInInterval(predecessorSuccessor.getNodeId(), predecessor.getNodeId(), localNode.getNodeId())) {
+                            localNode.setPredecessor(predecessorSuccessor);
+                        }
+                    } else {
+                        localNode.setPredecessor(localNode);
+                    }
+
+                    // Update finger table periodically
+                    for (int i = 0; i < ChordNode.M; i++) {
+                        BigInteger start = localNode.getNodeId().add(BigInteger.valueOf(2).pow(i)).mod(BigInteger.valueOf(2).pow(ChordNode.M));
+                        ChordNode successorNode = localNode.findSuccessor(start);
+                        if (successorNode != null) {
+                            localNode.updateFingerTable(successorNode);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-        } else {
-            localNode.setSuccessor(localNode);
-            Log.d(TAG, "Successor set to self: " + localNode.getNodeId());
-        }
-
-        ChordNode predecessor = localNode.getPredecessor();
-        if (predecessor != null) {
-            ChordNode predecessorSuccessor = predecessor.getSuccessor();
-            if (predecessorSuccessor != null && isInInterval(predecessorSuccessor.getNodeId(), predecessor.getNodeId(), localNode.getNodeId())) {
-                localNode.setPredecessor(predecessorSuccessor);
-                Log.d(TAG, "Predecessor updated to: " + localNode.getPredecessor().getNodeId());
-            }
-        } else {
-            localNode.setPredecessor(localNode);
-            Log.d(TAG, "Predecessor set to self: " + localNode.getNodeId());
-        }
-
-        // Update finger table periodically
-        for (int i = 0; i < ChordNode.M; i++) {
-            BigInteger start = localNode.getNodeId().add(BigInteger.valueOf(2).pow(i));
-            ChordNode successorNode = localNode.findSuccessor(start);
-            if (successorNode != null) {
-                localNode.updateFingerTable(successorNode);
-            }
-        }
+        }).start();
     }
+
+
+
 
     private boolean isInInterval(BigInteger id, BigInteger start, BigInteger end) {
         if (start.compareTo(end) < 0) {

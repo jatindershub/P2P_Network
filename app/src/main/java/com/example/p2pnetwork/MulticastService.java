@@ -12,22 +12,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class MulticastService extends Thread {
-    private static final String TAG = "MulticastService";
-
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
-    private static final int PORT = 5000; // The port for the multicast group
+    private static final int PORT = 5000;
     private MulticastSocket socket;
     private InetAddress group;
-    private List<NodeInfo> nodeList = new CopyOnWriteArrayList<>();
+    private ChordNode localNode;
+    private List<NodeInfo> nodeList;
     private Consumer<List<NodeInfo>> nodeListUpdater;
     private int dynamicPort;
-    private volatile boolean running = true;
-    private ChordNode localNode;
 
     public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = dynamicPort;
+        this.nodeList = new ArrayList<>();
         try {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);
@@ -40,22 +38,20 @@ public class MulticastService extends Thread {
     @Override
     public void run() {
         try {
-            while (running) {
+            while (true) {
                 byte[] buf = new byte[256];
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
                 String received = new String(packet.getData(), 0, packet.getLength());
                 handleReceivedMessage(received);
             }
-            socket.leaveGroup(group);
-            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private void handleReceivedMessage(String message) {
-        Log.d(TAG, "Received message: " + message);
+        Log.d("MulticastService", "Received message: " + message);
         try {
             String[] parts = message.split(",");
             if (parts.length == 4) {
@@ -85,7 +81,7 @@ public class MulticastService extends Thread {
 
                     // Update finger table with new node
                     if (localNode != null) {
-                        localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
+                        localNode.updateFingerTable(new ChordNode(discoveredNode));
                     }
                 }
             }
@@ -105,9 +101,5 @@ public class MulticastService extends Thread {
             }
         }).start();
     }
-
-    public void stopService() {
-        running = false;
-        interrupt();
-    }
 }
+

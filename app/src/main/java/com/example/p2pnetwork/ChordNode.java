@@ -16,6 +16,12 @@ public class ChordNode {
     private ChordNode[] fingerTable;
     private ChordNode predecessor;
 
+    public ChordNode(NodeInfo nodeInfo) {
+        this(nodeInfo.getIp(), nodeInfo.getPort());
+        this.nodeId = nodeInfo.getNodeId();
+    }
+
+
     public ChordNode(InetAddress ip) {
         this(ip, NetworkUtils.getAvailablePort());
     }
@@ -89,24 +95,30 @@ public class ChordNode {
 
     public void updateFingerTable(ChordNode newNode) {
         Log.d(TAG, "Updating finger table with new node: " + newNode.getNodeId());
+
         for (int i = 0; i < M; i++) {
-            BigInteger start = nodeId.add(BigInteger.valueOf(2).pow(i));
-            if (isInInterval(start, nodeId, newNode.getNodeId())) {
-                if (fingerTable[i] == null || isInInterval(newNode.getNodeId(), nodeId, fingerTable[i].getNodeId())) {
-                    fingerTable[i] = newNode;
-                    Log.d(TAG, "Finger table updated at " + i + " with node " + newNode.getNodeId());
-                }
+            BigInteger start = nodeId.add(BigInteger.valueOf(2).pow(i)).mod(BigInteger.valueOf(2).pow(M));
+            ChordNode successorNode = findSuccessor(start);
+
+            if (successorNode != null && !successorNode.equals(this)) {
+                fingerTable[i] = successorNode;
+                Log.d(TAG, "Finger table updated at " + i + " with node " + successorNode.getNodeId());
             }
         }
+
         if (getSuccessor() == null || isInInterval(newNode.getNodeId(), nodeId, getSuccessor().getNodeId())) {
             setSuccessor(newNode);
             Log.d(TAG, "Successor set to: " + newNode.getNodeId());
         }
+
         if (predecessor == null || isInInterval(newNode.getNodeId(), predecessor.getNodeId(), nodeId)) {
             setPredecessor(newNode);
             Log.d(TAG, "Predecessor set to: " + newNode.getNodeId());
         }
     }
+
+
+
 
     private boolean isInInterval(BigInteger id, BigInteger start, BigInteger end) {
         if (start.compareTo(end) < 0) {
@@ -116,17 +128,18 @@ public class ChordNode {
         }
     }
 
-    // Method to find the successor of a given id
     public ChordNode findSuccessor(BigInteger id) {
-        if (isInInterval(id, nodeId, getSuccessor().getNodeId()) || id.equals(getSuccessor().getNodeId())) {
+        if (getSuccessor() != null && isInInterval(id, nodeId, getSuccessor().getNodeId())) {
             return getSuccessor();
         } else {
             ChordNode closestNode = closestPrecedingNode(id);
+            if (closestNode == this) {
+                return this;
+            }
             return closestNode.findSuccessor(id);
         }
     }
 
-    // Method to find the closest preceding node
     public ChordNode closestPrecedingNode(BigInteger id) {
         for (int i = M - 1; i >= 0; i--) {
             if (fingerTable[i] != null && isInInterval(fingerTable[i].getNodeId(), nodeId, id)) {
@@ -135,4 +148,6 @@ public class ChordNode {
         }
         return this;
     }
+
+
 }
