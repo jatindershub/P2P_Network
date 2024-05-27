@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/layout/activity_node_details.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/nodeId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Node ID:" />
+
+    <TextView
+        android:id="@+id/predecessorId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Predecessor ID:" />
+
+    <TextView
+        android:id="@+id/successorId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Successor ID:" />
+
+    <TextView
+        android:id="@+id/fingerTable"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Finger Table:" />
+
+    <Button
+        android:id="@+id/backButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Back" />
+
+</LinearLayout>

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- activity_main.xml -->
+<!-- res/layout/activity_main.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -19,4 +18,11 @@
         android:text="Node Status"
         android:paddingTop="20dp" />
 
+    <Button
+        android:id="@+id/viewDetailsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View Node Details"
+        android:enabled="false"
+        android:paddingTop="20dp" />
 </LinearLayout>
