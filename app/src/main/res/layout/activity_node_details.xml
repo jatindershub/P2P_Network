@@ -1,39 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- res/layout/activity_node_details.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#FFFFFF">
 
     <TextView
-        android:id="@+id/nodeId"
+        android:id="@+id/nodeIdText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Node ID:" />
+        android:text="Node ID: "
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
 
     <TextView
-        android:id="@+id/predecessorId"
+        android:id="@+id/predecessorIdText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Predecessor ID:" />
+        android:text="Predecessor ID: "
+        android:textSize="18sp"
+        android:layout_marginBottom="8dp" />
 
     <TextView
-        android:id="@+id/successorId"
+        android:id="@+id/successorIdText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Successor ID:" />
+        android:text="Successor ID: "
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp" />
 
     <TextView
-        android:id="@+id/fingerTable"
+        android:id="@+id/fingerTableTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Finger Table:" />
+        android:text="Finger Table"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/backButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Back" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#EEEEEE"
+        android:padding="8dp">
 
+        <LinearLayout
+            android:id="@+id/fingerTableLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

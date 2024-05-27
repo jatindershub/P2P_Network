@@ -8,24 +8,24 @@ import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class MulticastService extends Thread {
+    private static final String TAG = "MulticastService";
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
     private static final int PORT = 5000;
     private MulticastSocket socket;
     private InetAddress group;
     private ChordNode localNode;
-    private List<NodeInfo> nodeList;
     private Consumer<List<NodeInfo>> nodeListUpdater;
+    private List<NodeInfo> nodeList;
     private int dynamicPort;
 
-    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
+    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
-        this.dynamicPort = dynamicPort;
-        this.nodeList = new ArrayList<>();
+        this.dynamicPort = port;
+        nodeList = new ArrayList<>();
         try {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);
@@ -33,6 +33,10 @@ public class MulticastService extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void setLocalNode(ChordNode localNode) {
+        this.localNode = localNode;
     }
 
     @Override
@@ -51,7 +55,7 @@ public class MulticastService extends Thread {
     }
 
     private void handleReceivedMessage(String message) {
-        Log.d("MulticastService", "Received message: " + message);
+        Log.d(TAG, "Received message: " + message);
         try {
             String[] parts = message.split(",");
             if (parts.length == 4) {
@@ -81,7 +85,7 @@ public class MulticastService extends Thread {
 
                     // Update finger table with new node
                     if (localNode != null) {
-                        localNode.updateFingerTable(new ChordNode(discoveredNode));
+                        localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
                     }
                 }
             }
@@ -91,15 +95,12 @@ public class MulticastService extends Thread {
     }
 
     public void sendMulticastMessage(String message) {
-        new Thread(() -> {
-            try {
-                byte[] buf = message.getBytes();
-                DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
-                socket.send(packet);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        try {
+            byte[] buf = message.getBytes();
+            DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
+            socket.send(packet);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
-

@@ -62,57 +62,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void joinNetwork() {
-        new Thread(() -> {
-            try {
-                InetAddress ip = NetworkUtils.getIPAddress();
-                int port = NetworkUtils.getAvailablePort();
+        try {
+            InetAddress ip = NetworkUtils.getIPAddress();
+            int port = NetworkUtils.getAvailablePort();
 
-                if (ip != null && port != -1) {
-                    node = new ChordNode(ip, port);
+            if (ip != null && port != -1) {
+                node = new ChordNode(ip, port);
 
-                    // Try to find an existing node to join the network
-                    if (!nodeList.isEmpty()) {
-                        NodeInfo bootstrapNodeInfo = nodeList.get(0); // Assuming the first node in the list as bootstrap
-                        ChordNode bootstrapNode = new ChordNode(bootstrapNodeInfo);
+                // Try to find an existing node to join the network
+                if (!nodeList.isEmpty()) {
+                    NodeInfo bootstrapNodeInfo = nodeList.get(0); // Assuming the first node in the list as bootstrap
+                    ChordNode bootstrapNode = new ChordNode(bootstrapNodeInfo);
 
-                        ChordNode successor = bootstrapNode.findSuccessor(node.getNodeId());
-                        node.setSuccessor(successor);
-                        node.setPredecessor(successor.getPredecessor());
-                        successor.setPredecessor(node);
-                    } else {
-                        // This is the first node in the network
-                        node.setSuccessor(node);
-                        node.setPredecessor(node);
-                    }
-
-                    // Update multicastService to use the new node
-                    multicastService = new MulticastService(node, this::updateNodeList, port);
-                    multicastService.start();
-
-                    stabilizationService = new StabilizationService(node, multicastService);
-                    stabilizationService.start();
-
-                    runOnUiThread(() -> {
-                        nodeStatus.setText("Node ID: " + node.getNodeId());
-                        viewDetailsButton.setEnabled(true);
-                        leaveNetworkButton.setEnabled(true);
-                        joinNetworkButton.setEnabled(false);
-                    });
-
-                    multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
+                    ChordNode successor = bootstrapNode.findSuccessor(node.getNodeId());
+                    node.setSuccessor(successor);
+                    node.setPredecessor(successor.getPredecessor());
+                    successor.setPredecessor(node);
                 } else {
-                    runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
+                    // This is the first node in the network
+                    node.setSuccessor(node);
+                    node.setPredecessor(node);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+
+                // Update multicastService to use the new node
+                multicastService.setLocalNode(node);
+                stabilizationService = new StabilizationService(node, multicastService);
+                stabilizationService.start();
+
+                runOnUiThread(() -> {
+                    nodeStatus.setText("Node ID: " + node.getNodeId());
+                    viewDetailsButton.setEnabled(true);
+                    leaveNetworkButton.setEnabled(true);
+                    joinNetworkButton.setEnabled(false);
+                });
+
+                multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
+            } else {
+                runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
             }
-        }).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
-
-
-
-
 
     private void leaveNetwork() {
         if (multicastService != null && node != null) {
@@ -137,6 +128,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateNodeList(List<NodeInfo> newNodeList) {
-        runOnUiThread(() -> nodesAdapter.updateNodes(newNodeList));
+        runOnUiThread(() -> {
+            nodeList.clear();
+            nodeList.addAll(newNodeList);
+            nodesAdapter.notifyDataSetChanged();
+        });
     }
 }
