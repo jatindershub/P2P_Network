@@ -5,10 +5,13 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
 
 public class ChordNode {
     private static final String TAG = "ChordNode";
-
+    private TcpServer tcpServer;
+    private TcpClient tcpClient;
+    private int tcpPort;
     private BigInteger nodeId;
     private InetAddress ip;
     private int dynamicPort;
@@ -19,11 +22,6 @@ public class ChordNode {
     public ChordNode(NodeInfo nodeInfo) {
         this(nodeInfo.getIp(), nodeInfo.getPort());
         this.nodeId = nodeInfo.getNodeId();
-    }
-
-
-    public ChordNode(InetAddress ip) {
-        this(ip, NetworkUtils.getAvailablePort());
     }
 
     public ChordNode(InetAddress ip, int dynamicPort) {
