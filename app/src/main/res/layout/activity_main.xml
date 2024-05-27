@@ -25,4 +25,19 @@
         android:text="View Node Details"
         android:enabled="false"
         android:paddingTop="20dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Active Nodes"
+        android:paddingTop="20dp"
+        android:textSize="18sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/nodesRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="10dp" />
+
 </LinearLayout>

@@ -19,6 +19,13 @@ public class ChordNode {
         this.predecessor = null;
     }
 
+    public ChordNode(InetAddress ip, BigInteger nodeId) {
+        this.ip = ip;
+        this.nodeId = nodeId;
+        this.fingerTable = new ChordNode[M];
+        this.predecessor = null;
+    }
+
     private BigInteger generateNodeId(String ipAddress) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");

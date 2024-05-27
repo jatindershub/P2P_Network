@@ -1,3 +1,4 @@
+// MainActivity.java
 package com.example.p2pnetwork;
 
 import android.content.Intent;
@@ -6,7 +7,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -15,6 +20,9 @@ public class MainActivity extends AppCompatActivity {
     private StabilizationService stabilizationService;
     private TextView nodeStatus;
     private Button viewDetailsButton;
+    private RecyclerView nodesRecyclerView;
+    private NodesAdapter nodesAdapter;
+    private List<NodeInfo> nodeList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,13 +32,20 @@ public class MainActivity extends AppCompatActivity {
         nodeStatus = findViewById(R.id.nodeStatus);
         Button joinNetworkButton = findViewById(R.id.joinNetworkButton);
         viewDetailsButton = findViewById(R.id.viewDetailsButton);
+        nodesRecyclerView = findViewById(R.id.nodesRecyclerView);
+
+        nodeList = new ArrayList<>();
+        nodesAdapter = new NodesAdapter(nodeList);
+        nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        nodesRecyclerView.setAdapter(nodesAdapter);
 
         joinNetworkButton.setOnClickListener(v -> new Thread(() -> {
             try {
                 InetAddress ip = InetAddress.getLocalHost();
+                int port = 5000; // Example port, ensure to set this appropriately
                 node = new ChordNode(ip);
 
-                multicastService = new MulticastService(node);
+                multicastService = new MulticastService(node, this::updateNodeList);
                 multicastService.start();
 
                 stabilizationService = new StabilizationService(node, multicastService);
@@ -40,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
                     nodeStatus.setText("Node ID: " + node.getNodeId());
                     viewDetailsButton.setEnabled(true);
                 });
+
+                multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -53,5 +70,9 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("fingerTable", node.getFingerTableAsString());
             startActivity(intent);
         });
+    }
+
+    private void updateNodeList(List<NodeInfo> newNodeList) {
+        runOnUiThread(() -> nodesAdapter.updateNodes(newNodeList));
     }
 }

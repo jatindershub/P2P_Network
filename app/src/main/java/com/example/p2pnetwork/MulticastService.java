@@ -5,6 +5,10 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public class MulticastService extends Thread {
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
@@ -12,9 +16,12 @@ public class MulticastService extends Thread {
     private MulticastSocket socket;
     private InetAddress group;
     private ChordNode localNode;
+    private List<NodeInfo> nodeList = new CopyOnWriteArrayList<>();
+    private Consumer<List<NodeInfo>> nodeListUpdater;
 
-    public MulticastService(ChordNode localNode) {
+    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater) {
         this.localNode = localNode;
+        this.nodeListUpdater = nodeListUpdater;
         try {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);
@@ -40,20 +47,32 @@ public class MulticastService extends Thread {
     }
 
     private void handleReceivedMessage(String message) {
-        // Parse the received message and update the Chord node information
-        String[] parts = message.split(",");
-        if (parts.length == 2) {
-            try {
+        try {
+            String[] parts = message.split(",");
+            if (parts.length == 3) {
                 BigInteger nodeId = new BigInteger(parts[0]);
                 InetAddress ip = InetAddress.getByName(parts[1]);
-                ChordNode discoveredNode = new ChordNode(ip);
-                discoveredNode.setNodeId(nodeId);
+                int port = Integer.parseInt(parts[2]);
 
-                // Update the local node's finger table, predecessor, and successor
-                localNode.updateFingerTable(discoveredNode);
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
+                NodeInfo discoveredNode = new NodeInfo(nodeId, ip, port);
+
+                boolean nodeExists = false;
+                for (NodeInfo node : nodeList) {
+                    if (node.getNodeId().equals(discoveredNode.getNodeId())) {
+                        nodeExists = true;
+                        break;
+                    }
+                }
+
+                if (!nodeExists) {
+                    nodeList.add(discoveredNode);
+                    nodeListUpdater.accept(new ArrayList<>(nodeList));
+                }
+
+                localNode.updateFingerTable(new ChordNode(ip, nodeId));
             }
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         }
     }
 
@@ -67,4 +86,3 @@ public class MulticastService extends Thread {
         }
     }
 }
-
