@@ -84,13 +84,15 @@ public class MulticastService extends Thread {
     }
 
     public void sendMulticastMessage(String message) {
-        try {
-            byte[] buf = message.getBytes();
-            DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
-            socket.send(packet);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        new Thread(() -> {
+            try {
+                byte[] buf = message.getBytes();
+                DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
+                socket.send(packet);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public void stopService() {

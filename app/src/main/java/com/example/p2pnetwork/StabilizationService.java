@@ -26,7 +26,7 @@ public class StabilizationService extends Thread {
         @Override
         public void run() {
             if (running) {
-                stabilize();
+                new Thread(() -> stabilize()).start();
                 handler.postDelayed(this, 5000); // Repeat every 5 seconds
             }
         }
