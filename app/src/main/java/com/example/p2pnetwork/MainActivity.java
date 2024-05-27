@@ -11,8 +11,8 @@ import java.net.InetAddress;
 public class MainActivity extends AppCompatActivity {
 
     private ChordNode node;
-    private ChordNode existingNode; // Add a reference to an existing node for initialization
     private MulticastService multicastService;
+    private StabilizationService stabilizationService;
     private TextView nodeStatus;
     private Button viewDetailsButton;
 
@@ -30,14 +30,11 @@ public class MainActivity extends AppCompatActivity {
                 InetAddress ip = InetAddress.getLocalHost();
                 node = new ChordNode(ip);
 
-                // Simulate an existing node for initializing the finger table
-                existingNode = new ChordNode(InetAddress.getByName("192.168.1.2")); // Replace with actual node address
-                existingNode.setSuccessor(existingNode); // Set the existing node's successor to itself for simplicity
-                existingNode.setPredecessor(existingNode); // Set the existing node's predecessor to itself for simplicity
-                node.initializeFingerTable(existingNode);
-
-                multicastService = new MulticastService();
+                multicastService = new MulticastService(node);
                 multicastService.start();
+
+                stabilizationService = new StabilizationService(node, multicastService);
+                stabilizationService.start();
 
                 runOnUiThread(() -> {
                     nodeStatus.setText("Node ID: " + node.getNodeId());

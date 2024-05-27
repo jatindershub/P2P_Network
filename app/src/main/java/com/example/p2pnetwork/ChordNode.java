@@ -34,6 +34,14 @@ public class ChordNode {
         return nodeId;
     }
 
+    public InetAddress getIp() {
+        return ip;
+    }
+
+    public void setNodeId(BigInteger nodeId) {
+        this.nodeId = nodeId;
+    }
+
     public ChordNode getPredecessor() {
         return predecessor;
     }
@@ -60,20 +68,20 @@ public class ChordNode {
         return sb.toString();
     }
 
-    // Method to initialize the finger table
-    public void initializeFingerTable(ChordNode existingNode) {
-        ChordNode successorNode = existingNode.findSuccessor(this.nodeId);
-        fingerTable[0] = successorNode;
-        predecessor = successorNode.getPredecessor();
-        successorNode.setPredecessor(this);
-
-        for (int i = 0; i < M - 1; i++) {
+    public void updateFingerTable(ChordNode newNode) {
+        for (int i = 0; i < M; i++) {
             BigInteger start = nodeId.add(BigInteger.valueOf(2).pow(i));
-            if (isInInterval(start, nodeId, fingerTable[i].getNodeId())) {
-                fingerTable[i + 1] = fingerTable[i];
-            } else {
-                fingerTable[i + 1] = existingNode.findSuccessor(start);
+            if (isInInterval(start, nodeId, newNode.getNodeId())) {
+                if (fingerTable[i] == null || isInInterval(newNode.getNodeId(), nodeId, fingerTable[i].getNodeId())) {
+                    fingerTable[i] = newNode;
+                }
             }
+        }
+        if (getSuccessor() == null || isInInterval(newNode.getNodeId(), nodeId, getSuccessor().getNodeId())) {
+            setSuccessor(newNode);
+        }
+        if (predecessor == null || isInInterval(newNode.getNodeId(), predecessor.getNodeId(), nodeId)) {
+            setPredecessor(newNode);
         }
     }
 
