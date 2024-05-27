@@ -12,16 +12,18 @@ import java.util.function.Consumer;
 
 public class MulticastService extends Thread {
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
-    private static final int PORT = 5000;
+    private static final int PORT = 5000; // The port for the multicast group
     private MulticastSocket socket;
     private InetAddress group;
     private ChordNode localNode;
     private List<NodeInfo> nodeList = new CopyOnWriteArrayList<>();
     private Consumer<List<NodeInfo>> nodeListUpdater;
+    private int dynamicPort;
 
-    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater) {
+    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
+        this.dynamicPort = dynamicPort;
         try {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);

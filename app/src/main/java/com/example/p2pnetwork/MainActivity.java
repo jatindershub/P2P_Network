@@ -42,12 +42,12 @@ public class MainActivity extends AppCompatActivity {
         joinNetworkButton.setOnClickListener(v -> new Thread(() -> {
             try {
                 InetAddress ip = NetworkUtils.getIPAddress();
-                int port = 5000; // Example port, ensure to set this appropriately
+                int port = NetworkUtils.getAvailablePort();
 
-                if (ip != null) {
+                if (ip != null && port != -1) {
                     node = new ChordNode(ip);
 
-                    multicastService = new MulticastService(node, this::updateNodeList);
+                    multicastService = new MulticastService(node, this::updateNodeList, port);
                     multicastService.start();
 
                     stabilizationService = new StabilizationService(node, multicastService);
@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
                     multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {
-                    runOnUiThread(() -> nodeStatus.setText("Failed to get IP address"));
+                    runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
