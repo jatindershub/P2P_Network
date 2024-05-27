@@ -41,22 +41,27 @@ public class MainActivity extends AppCompatActivity {
 
         joinNetworkButton.setOnClickListener(v -> new Thread(() -> {
             try {
-                InetAddress ip = InetAddress.getLocalHost();
+                InetAddress ip = NetworkUtils.getIPAddress();
                 int port = 5000; // Example port, ensure to set this appropriately
-                node = new ChordNode(ip);
 
-                multicastService = new MulticastService(node, this::updateNodeList);
-                multicastService.start();
+                if (ip != null) {
+                    node = new ChordNode(ip);
 
-                stabilizationService = new StabilizationService(node, multicastService);
-                stabilizationService.start();
+                    multicastService = new MulticastService(node, this::updateNodeList);
+                    multicastService.start();
 
-                runOnUiThread(() -> {
-                    nodeStatus.setText("Node ID: " + node.getNodeId());
-                    viewDetailsButton.setEnabled(true);
-                });
+                    stabilizationService = new StabilizationService(node, multicastService);
+                    stabilizationService.start();
 
-                multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
+                    runOnUiThread(() -> {
+                        nodeStatus.setText("Node ID: " + node.getNodeId());
+                        viewDetailsButton.setEnabled(true);
+                    });
+
+                    multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
+                } else {
+                    runOnUiThread(() -> nodeStatus.setText("Failed to get IP address"));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
