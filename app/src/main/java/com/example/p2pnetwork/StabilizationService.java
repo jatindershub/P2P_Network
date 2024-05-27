@@ -2,10 +2,13 @@ package com.example.p2pnetwork;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import java.math.BigInteger;
 
 public class StabilizationService extends Thread {
+    private static final String TAG = "StabilizationService";
+
     private ChordNode localNode;
     private MulticastService multicastService;
     private Handler handler;
@@ -33,6 +36,8 @@ public class StabilizationService extends Thread {
     };
 
     private void stabilize() {
+        Log.d(TAG, "Stabilizing node: " + localNode.getNodeId());
+
         // Send out a multicast message to inform other nodes of this node's existence
         multicastService.sendMulticastMessage(localNode.getNodeId() + "," + localNode.getIp().getHostAddress() + "," + localNode.getDynamicPort());
 
@@ -42,7 +47,11 @@ public class StabilizationService extends Thread {
             ChordNode successorPredecessor = successor.getPredecessor();
             if (successorPredecessor != null && isInInterval(successorPredecessor.getNodeId(), localNode.getNodeId(), successor.getNodeId())) {
                 localNode.setSuccessor(successorPredecessor);
+                Log.d(TAG, "Successor updated to: " + localNode.getSuccessor().getNodeId());
             }
+        } else {
+            localNode.setSuccessor(localNode);
+            Log.d(TAG, "Successor set to self: " + localNode.getNodeId());
         }
 
         ChordNode predecessor = localNode.getPredecessor();
@@ -50,6 +59,19 @@ public class StabilizationService extends Thread {
             ChordNode predecessorSuccessor = predecessor.getSuccessor();
             if (predecessorSuccessor != null && isInInterval(predecessorSuccessor.getNodeId(), predecessor.getNodeId(), localNode.getNodeId())) {
                 localNode.setPredecessor(predecessorSuccessor);
+                Log.d(TAG, "Predecessor updated to: " + localNode.getPredecessor().getNodeId());
+            }
+        } else {
+            localNode.setPredecessor(localNode);
+            Log.d(TAG, "Predecessor set to self: " + localNode.getNodeId());
+        }
+
+        // Update finger table periodically
+        for (int i = 0; i < ChordNode.M; i++) {
+            BigInteger start = localNode.getNodeId().add(BigInteger.valueOf(2).pow(i));
+            ChordNode successorNode = localNode.findSuccessor(start);
+            if (successorNode != null) {
+                localNode.updateFingerTable(successorNode);
             }
         }
     }

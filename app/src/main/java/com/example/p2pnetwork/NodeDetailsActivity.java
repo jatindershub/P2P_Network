@@ -1,10 +1,13 @@
 package com.example.p2pnetwork;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class NodeDetailsActivity extends AppCompatActivity {
+
+    private static final String TAG = "NodeDetailsActivity";
 
     private TextView nodeIdText;
     private TextView predecessorIdText;
@@ -25,6 +28,11 @@ public class NodeDetailsActivity extends AppCompatActivity {
         String predecessorId = getIntent().getStringExtra("predecessorId");
         String successorId = getIntent().getStringExtra("successorId");
         String fingerTable = getIntent().getStringExtra("fingerTable");
+
+        Log.d(TAG, "Node ID: " + nodeId);
+        Log.d(TAG, "Predecessor ID: " + predecessorId);
+        Log.d(TAG, "Successor ID: " + successorId);
+        Log.d(TAG, "Finger Table: " + fingerTable);
 
         nodeIdText.setText(nodeId);
         predecessorIdText.setText(predecessorId != null ? predecessorId : "None");

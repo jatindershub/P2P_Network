@@ -53,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
         int port = NetworkUtils.getAvailablePort();
 
         if (ip != null && port != -1) {
-            multicastService = new MulticastService(this::updateNodeList, port);
+            // Pass null as localNode since it hasn't been initialized yet
+            multicastService = new MulticastService(null, this::updateNodeList, port);
             multicastService.start();
         } else {
             runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
@@ -67,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
 
             if (ip != null && port != -1) {
                 node = new ChordNode(ip, port);
+
+                // Update multicastService to use the new node
+                multicastService = new MulticastService(node, this::updateNodeList, port);
+                multicastService.start();
 
                 stabilizationService = new StabilizationService(node, multicastService);
                 stabilizationService.start();

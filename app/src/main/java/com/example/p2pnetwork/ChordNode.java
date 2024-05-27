@@ -1,17 +1,20 @@
 package com.example.p2pnetwork;
 
+import android.util.Log;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class ChordNode {
+    private static final String TAG = "ChordNode";
+
     private BigInteger nodeId;
     private InetAddress ip;
     private int dynamicPort;
+    public static final int M = 160; // Typically 160 for SHA-1
     private ChordNode[] fingerTable;
     private ChordNode predecessor;
-    private static final int M = 160; // Typically 160 for SHA-1
 
     public ChordNode(InetAddress ip) {
         this(ip, NetworkUtils.getAvailablePort());
@@ -62,6 +65,7 @@ public class ChordNode {
 
     public void setPredecessor(ChordNode predecessor) {
         this.predecessor = predecessor;
+        Log.d(TAG, "Predecessor set to: " + (predecessor != null ? predecessor.getNodeId() : "None"));
     }
 
     public ChordNode getSuccessor() {
@@ -70,6 +74,7 @@ public class ChordNode {
 
     public void setSuccessor(ChordNode successor) {
         fingerTable[0] = successor;
+        Log.d(TAG, "Successor set to: " + (successor != null ? successor.getNodeId() : "None"));
     }
 
     public String getFingerTableAsString() {
@@ -83,19 +88,23 @@ public class ChordNode {
     }
 
     public void updateFingerTable(ChordNode newNode) {
+        Log.d(TAG, "Updating finger table with new node: " + newNode.getNodeId());
         for (int i = 0; i < M; i++) {
             BigInteger start = nodeId.add(BigInteger.valueOf(2).pow(i));
             if (isInInterval(start, nodeId, newNode.getNodeId())) {
                 if (fingerTable[i] == null || isInInterval(newNode.getNodeId(), nodeId, fingerTable[i].getNodeId())) {
                     fingerTable[i] = newNode;
+                    Log.d(TAG, "Finger table updated at " + i + " with node " + newNode.getNodeId());
                 }
             }
         }
         if (getSuccessor() == null || isInInterval(newNode.getNodeId(), nodeId, getSuccessor().getNodeId())) {
             setSuccessor(newNode);
+            Log.d(TAG, "Successor set to: " + newNode.getNodeId());
         }
         if (predecessor == null || isInInterval(newNode.getNodeId(), predecessor.getNodeId(), nodeId)) {
             setPredecessor(newNode);
+            Log.d(TAG, "Predecessor set to: " + newNode.getNodeId());
         }
     }
 

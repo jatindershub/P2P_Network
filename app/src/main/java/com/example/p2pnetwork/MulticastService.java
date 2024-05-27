@@ -1,5 +1,6 @@
 package com.example.p2pnetwork;
 
+import android.util.Log;
 import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -11,6 +12,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class MulticastService extends Thread {
+    private static final String TAG = "MulticastService";
+
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
     private static final int PORT = 5000; // The port for the multicast group
     private MulticastSocket socket;
@@ -19,8 +22,10 @@ public class MulticastService extends Thread {
     private Consumer<List<NodeInfo>> nodeListUpdater;
     private int dynamicPort;
     private volatile boolean running = true;
+    private ChordNode localNode;
 
-    public MulticastService(Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
+    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
+        this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = dynamicPort;
         try {
@@ -50,6 +55,7 @@ public class MulticastService extends Thread {
     }
 
     private void handleReceivedMessage(String message) {
+        Log.d(TAG, "Received message: " + message);
         try {
             String[] parts = message.split(",");
             if (parts.length == 4) {
@@ -75,6 +81,11 @@ public class MulticastService extends Thread {
                     if (!nodeExists) {
                         nodeList.add(discoveredNode);
                         nodeListUpdater.accept(new ArrayList<>(nodeList));
+                    }
+
+                    // Update finger table with new node
+                    if (localNode != null) {
+                        localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
                     }
                 }
             }
