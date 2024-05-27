@@ -1,5 +1,6 @@
 package com.example.p2pnetwork;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -8,9 +9,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class NodeDetailsActivity extends AppCompatActivity {
 
-    private TextView nodeIdText;
-    private TextView predecessorIdText;
-    private TextView successorIdText;
+    private TextView nodeIdTextView;
+    private TextView predecessorIdTextView;
+    private TextView successorIdTextView;
     private LinearLayout fingerTableLayout;
 
     @Override
@@ -18,29 +19,26 @@ public class NodeDetailsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_node_details);
 
-        nodeIdText = findViewById(R.id.nodeIdText);
-        predecessorIdText = findViewById(R.id.predecessorIdText);
-        successorIdText = findViewById(R.id.successorIdText);
+        nodeIdTextView = findViewById(R.id.nodeIdTextView);
+        predecessorIdTextView = findViewById(R.id.predecessorIdTextView);
+        successorIdTextView = findViewById(R.id.successorIdTextView);
         fingerTableLayout = findViewById(R.id.fingerTableLayout);
 
-        String nodeId = getIntent().getStringExtra("nodeId");
-        String predecessorId = getIntent().getStringExtra("predecessorId");
-        String successorId = getIntent().getStringExtra("successorId");
-        String fingerTable = getIntent().getStringExtra("fingerTable");
+        Intent intent = getIntent();
+        String nodeId = intent.getStringExtra("nodeId");
+        String predecessorId = intent.getStringExtra("predecessorId");
+        String successorId = intent.getStringExtra("successorId");
+        String[] fingerTable = intent.getStringArrayExtra("fingerTable");
 
-        nodeIdText.setText("Node ID: " + nodeId);
-        predecessorIdText.setText("Predecessor ID: " + predecessorId);
-        successorIdText.setText("Successor ID: " + successorId);
+        nodeIdTextView.setText("Node ID: " + nodeId);
+        predecessorIdTextView.setText("Predecessor ID: " + predecessorId);
+        successorIdTextView.setText("Successor ID: " + successorId);
 
-        if (fingerTable != null && !fingerTable.isEmpty()) {
-            String[] fingerTableEntries = fingerTable.split(",");
-            for (String entry : fingerTableEntries) {
-                TextView textView = new TextView(this);
-                textView.setText(entry);
-                textView.setTextSize(16);
-                textView.setPadding(0, 4, 0, 4);
-                fingerTableLayout.addView(textView);
-            }
+        for (String entry : fingerTable) {
+            TextView fingerEntryView = new TextView(this);
+            fingerEntryView.setText(entry);
+            fingerTableLayout.addView(fingerEntryView);
         }
     }
 }
+

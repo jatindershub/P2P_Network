@@ -102,7 +102,7 @@ public class ChordNode {
 
             if (successorNode != null && !successorNode.equals(this)) {
                 fingerTable[i] = successorNode;
-                Log.d(TAG, "Finger table updated at " + i + " with node " + successorNode.getNodeId());
+                //Log.d(TAG, "Finger table updated at " + i + " with node " + successorNode.getNodeId());
             }
         }
 
@@ -117,8 +117,13 @@ public class ChordNode {
         }
     }
 
-
-
+    public String[] getFingerTableAsStringArray() {
+        String[] fingerTableArray = new String[M];
+        for (int i = 0; i < M; i++) {
+            fingerTableArray[i] = "Finger " + i + ": " + (fingerTable[i] != null ? fingerTable[i].getNodeId() : "None");
+        }
+        return fingerTableArray;
+    }
 
     private boolean isInInterval(BigInteger id, BigInteger start, BigInteger end) {
         if (start.compareTo(end) < 0) {

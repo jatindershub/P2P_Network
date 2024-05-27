@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("nodeId", node.getNodeId().toString());
         intent.putExtra("predecessorId", node.getPredecessor() != null ? node.getPredecessor().getNodeId().toString() : "None");
         intent.putExtra("successorId", node.getSuccessor() != null ? node.getSuccessor().getNodeId().toString() : "None");
-        intent.putExtra("fingerTable", node.getFingerTableAsString());
+        intent.putExtra("fingerTable", node.getFingerTableAsStringArray());
         startActivity(intent);
     }
 
