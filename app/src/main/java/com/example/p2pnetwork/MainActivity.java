@@ -19,6 +19,8 @@ public class MainActivity extends AppCompatActivity {
     private MulticastService multicastService;
     private StabilizationService stabilizationService;
     private TextView nodeStatus;
+    private Button joinNetworkButton;
+    private Button leaveNetworkButton;
     private Button viewDetailsButton;
     private RecyclerView nodesRecyclerView;
     private NodesAdapter nodesAdapter;
@@ -30,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         nodeStatus = findViewById(R.id.nodeStatus);
-        Button joinNetworkButton = findViewById(R.id.joinNetworkButton);
+        joinNetworkButton = findViewById(R.id.joinNetworkButton);
+        leaveNetworkButton = findViewById(R.id.leaveNetworkButton);
         viewDetailsButton = findViewById(R.id.viewDetailsButton);
         nodesRecyclerView = findViewById(R.id.nodesRecyclerView);
 
@@ -45,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 int port = NetworkUtils.getAvailablePort();
 
                 if (ip != null && port != -1) {
-                    node = new ChordNode(ip);
+                    node = new ChordNode(ip, port);
 
                     multicastService = new MulticastService(node, this::updateNodeList, port);
                     multicastService.start();
@@ -56,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         nodeStatus.setText("Node ID: " + node.getNodeId());
                         viewDetailsButton.setEnabled(true);
+                        leaveNetworkButton.setEnabled(true);
+                        joinNetworkButton.setEnabled(false);
                     });
 
                     multicastService.sendMulticastMessage(node.getNodeId() + "," + ip.getHostAddress() + "," + port);
@@ -64,6 +69,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }).start());
+
+        leaveNetworkButton.setOnClickListener(v -> new Thread(() -> {
+            if (multicastService != null) {
+                multicastService.sendMulticastMessage("LEAVE," + node.getNodeId() + "," + node.getIp().getHostAddress() + "," + node.getDynamicPort());
+                multicastService.stopService();
+                stabilizationService.stopService();
+                runOnUiThread(() -> {
+                    nodeStatus.setText("Node has left the network.");
+                    viewDetailsButton.setEnabled(false);
+                    leaveNetworkButton.setEnabled(false);
+                    joinNetworkButton.setEnabled(true);
+                });
             }
         }).start());
 

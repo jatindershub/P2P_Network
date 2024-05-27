@@ -19,6 +19,7 @@ public class MulticastService extends Thread {
     private List<NodeInfo> nodeList = new CopyOnWriteArrayList<>();
     private Consumer<List<NodeInfo>> nodeListUpdater;
     private int dynamicPort;
+    private volatile boolean running = true;
 
     public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int dynamicPort) {
         this.localNode = localNode;
@@ -36,13 +37,15 @@ public class MulticastService extends Thread {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (running) {
                 byte[] buf = new byte[256];
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
                 String received = new String(packet.getData(), 0, packet.getLength());
                 handleReceivedMessage(received);
             }
+            socket.leaveGroup(group);
+            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -51,27 +54,33 @@ public class MulticastService extends Thread {
     private void handleReceivedMessage(String message) {
         try {
             String[] parts = message.split(",");
-            if (parts.length == 3) {
-                BigInteger nodeId = new BigInteger(parts[0]);
-                InetAddress ip = InetAddress.getByName(parts[1]);
-                int port = Integer.parseInt(parts[2]);
+            if (parts.length == 4) {
+                String action = parts[0];
+                BigInteger nodeId = new BigInteger(parts[1]);
+                InetAddress ip = InetAddress.getByName(parts[2]);
+                int port = Integer.parseInt(parts[3]);
 
-                NodeInfo discoveredNode = new NodeInfo(nodeId, ip, port);
-
-                boolean nodeExists = false;
-                for (NodeInfo node : nodeList) {
-                    if (node.getNodeId().equals(discoveredNode.getNodeId())) {
-                        nodeExists = true;
-                        break;
-                    }
-                }
-
-                if (!nodeExists) {
-                    nodeList.add(discoveredNode);
+                if ("LEAVE".equals(action)) {
+                    nodeList.removeIf(node -> node.getNodeId().equals(nodeId));
                     nodeListUpdater.accept(new ArrayList<>(nodeList));
-                }
+                } else {
+                    NodeInfo discoveredNode = new NodeInfo(nodeId, ip, port);
 
-                localNode.updateFingerTable(new ChordNode(ip, nodeId));
+                    boolean nodeExists = false;
+                    for (NodeInfo node : nodeList) {
+                        if (node.getNodeId().equals(discoveredNode.getNodeId())) {
+                            nodeExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!nodeExists) {
+                        nodeList.add(discoveredNode);
+                        nodeListUpdater.accept(new ArrayList<>(nodeList));
+                    }
+
+                    localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
+                }
             }
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -86,5 +95,10 @@ public class MulticastService extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void stopService() {
+        running = false;
+        interrupt();
     }
 }

@@ -11,6 +11,14 @@
         android:layout_height="wrap_content"
         android:text="Join Network" />
 
+    <Button
+        android:id="@+id/leaveNetworkButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Leave Network"
+        android:enabled="false"
+        android:paddingTop="10dp" />
+
     <TextView
         android:id="@+id/nodeStatus"
         android:layout_width="match_parent"

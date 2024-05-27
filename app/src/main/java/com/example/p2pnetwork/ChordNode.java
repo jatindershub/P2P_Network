@@ -8,20 +8,27 @@ import java.security.NoSuchAlgorithmException;
 public class ChordNode {
     private BigInteger nodeId;
     private InetAddress ip;
+    private int dynamicPort;
     private ChordNode[] fingerTable;
     private ChordNode predecessor;
     private static final int M = 160; // Typically 160 for SHA-1
 
     public ChordNode(InetAddress ip) {
+        this(ip, NetworkUtils.getAvailablePort());
+    }
+
+    public ChordNode(InetAddress ip, int dynamicPort) {
         this.ip = ip;
         this.nodeId = generateNodeId(ip.getHostAddress());
+        this.dynamicPort = dynamicPort;
         this.fingerTable = new ChordNode[M];
         this.predecessor = null;
     }
 
-    public ChordNode(InetAddress ip, BigInteger nodeId) {
+    public ChordNode(InetAddress ip, BigInteger nodeId, int dynamicPort) {
         this.ip = ip;
         this.nodeId = nodeId;
+        this.dynamicPort = dynamicPort;
         this.fingerTable = new ChordNode[M];
         this.predecessor = null;
     }
@@ -45,8 +52,8 @@ public class ChordNode {
         return ip;
     }
 
-    public void setNodeId(BigInteger nodeId) {
-        this.nodeId = nodeId;
+    public int getDynamicPort() {
+        return dynamicPort;
     }
 
     public ChordNode getPredecessor() {

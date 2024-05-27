@@ -9,6 +9,7 @@ public class StabilizationService extends Thread {
     private ChordNode localNode;
     private MulticastService multicastService;
     private Handler handler;
+    private volatile boolean running = true;
 
     public StabilizationService(ChordNode localNode, MulticastService multicastService) {
         this.localNode = localNode;
@@ -24,14 +25,16 @@ public class StabilizationService extends Thread {
     private final Runnable stabilizeRunnable = new Runnable() {
         @Override
         public void run() {
-            stabilize();
-            handler.postDelayed(this, 5000); // Repeat every 5 seconds
+            if (running) {
+                stabilize();
+                handler.postDelayed(this, 5000); // Repeat every 5 seconds
+            }
         }
     };
 
     private void stabilize() {
         // Send out a multicast message to inform other nodes of this node's existence
-        multicastService.sendMulticastMessage(localNode.getNodeId() + "," + localNode.getIp().getHostAddress());
+        multicastService.sendMulticastMessage(localNode.getNodeId() + "," + localNode.getIp().getHostAddress() + "," + localNode.getDynamicPort());
 
         // Check and correct the successor and predecessor
         ChordNode successor = localNode.getSuccessor();
@@ -57,5 +60,10 @@ public class StabilizationService extends Thread {
         } else {
             return id.compareTo(start) > 0 || id.compareTo(end) <= 0;
         }
+    }
+
+    public void stopService() {
+        running = false;
+        handler.removeCallbacks(stabilizeRunnable);
     }
 }
