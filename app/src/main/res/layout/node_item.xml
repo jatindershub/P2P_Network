@@ -6,12 +6,6 @@
     android:padding="8dp">
 
     <TextView
-        android:id="@+id/nodeId"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Node ID" />
-
-    <TextView
         android:id="@+id/nodeIp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -22,4 +16,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Port" />
+
+    <TextView
+        android:id="@+id/nodeIdTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Node ID" />
+
 </LinearLayout>

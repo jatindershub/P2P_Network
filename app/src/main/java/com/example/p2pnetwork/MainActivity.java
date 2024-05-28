@@ -33,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView nodesRecyclerView;
     private NodesAdapter nodesAdapter;
     private List<NodeInfo> nodeList;
+    private EditText ipAddressInput;
+    private EditText portInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         leaveNetworkButton = findViewById(R.id.leaveNetworkButton);
         viewDetailsButton = findViewById(R.id.viewDetailsButton);
         nodesRecyclerView = findViewById(R.id.nodesRecyclerView);
+        ipAddressInput = findViewById(R.id.ipAddressInput);
+        portInput = findViewById(R.id.portInput);
 
         EditText ipAddressInput = findViewById(R.id.ipAddressInput);
         EditText portInput = findViewById(R.id.portInput);
@@ -64,11 +68,22 @@ public class MainActivity extends AppCompatActivity {
         nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         nodesRecyclerView.setAdapter(nodesAdapter);
 
+        // Set up item click listener for RecyclerView items
+        nodesAdapter.setOnItemClickListener(nodeInfo -> {
+            ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
+            portInput.setText(String.valueOf(nodeInfo.getPort()));
+        });
+
         startMulticastService();
 
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
         leaveNetworkButton.setOnClickListener(v -> new Thread(this::leaveNetwork).start());
         viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
+    }
+
+    private void onNodeItemClick(NodeInfo nodeInfo) {
+        ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
+        portInput.setText(String.valueOf(nodeInfo.getPort()));
     }
 
     private void startMulticastService() {
@@ -165,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
                     stabilizationService.start();
 
                     runOnUiThread(() -> {
-                        nodeStatus.setText("Node ID: " + node.getNodeId());
+                        nodeStatus.setText("Your information; IP: " + ip.getHostAddress() + ", Port: " + port);
                         viewDetailsButton.setEnabled(true);
                         leaveNetworkButton.setEnabled(true);
                         joinNetworkButton.setEnabled(false);
