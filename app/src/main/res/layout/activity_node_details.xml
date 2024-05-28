@@ -6,37 +6,57 @@
     android:padding="16dp">
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Node ID"
+        android:paddingTop="20dp"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
         android:id="@+id/nodeIdTextView"
         android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Node ID: "
-        android:textStyle="bold"/>
+        android:text="Predecessor ID: "
+        android:paddingTop="20dp"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/predecessorIdTextView"
         android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Predecessor ID: "
-        android:textStyle="bold"/>
+        android:text="Successor ID: "
+        android:paddingTop="20dp"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/successorIdTextView"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Successor ID: "
-        android:textStyle="bold"/>
+        android:layout_height="wrap_content" />
 
-    <TextView
+    <Button
+        android:id="@+id/toggleFingerTableButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Finger Table"
-        android:textStyle="bold"
+        android:text="Show Finger Table"
         android:layout_marginTop="16dp"/>
 
     <ScrollView
+        android:id="@+id/fingerTableScrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:visibility="gone">
 
         <LinearLayout
             android:id="@+id/fingerTableLayout"
