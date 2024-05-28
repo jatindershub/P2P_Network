@@ -1,5 +1,6 @@
 package com.example.p2pnetwork;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -7,16 +8,17 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 public class ChatActivity extends AppCompatActivity {
+
     private TextView chatMessages;
     private EditText messageInput;
     private Button sendButton;
     private Socket socket;
-    private BufferedReader input;
-    private OutputStreamWriter output;
+    private PrintWriter out;
+    private BufferedReader in;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,31 +29,52 @@ public class ChatActivity extends AppCompatActivity {
         messageInput = findViewById(R.id.messageInput);
         sendButton = findViewById(R.id.sendButton);
 
-        String ipAddress = getIntent().getStringExtra("ipAddress");
+        sendButton.setOnClickListener(v -> sendMessage());
+
+        String ip = getIntent().getStringExtra("ip");
         int port = getIntent().getIntExtra("port", -1);
 
-        new Thread(() -> {
-            try {
-                // Establish the TCP connection
-                socket = new Socket(ipAddress, port);
-                input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                output = new OutputStreamWriter(socket.getOutputStream());
+        new ChatTask().execute(ip, port);
+    }
 
-                // Listen for messages
+    private class ChatTask extends AsyncTask<Object, String, Void> {
+
+        @Override
+        protected Void doInBackground(Object... params) {
+            try {
+                String ip = (String) params[0];
+                int port = (int) params[1];
+
+                socket = new Socket(ip, port);
+                out = new PrintWriter(socket.getOutputStream(), true);
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                publishProgress("Connected to " + ip + ":" + port);
+
                 String message;
-                while ((message = input.readLine()) != null) {
-                    final String receivedMessage = message; // Make message final for lambda
-                    runOnUiThread(() -> chatMessages.append("Node: " + receivedMessage + "\n"));
+                while ((message = in.readLine()) != null) {
+                    publishProgress("Friend: " + message);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }).start();
+            return null;
+        }
 
-        sendButton.setOnClickListener(v -> {
-            String message = messageInput.getText().toString();
-            sendMessage(message);
-        });
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            chatMessages.append(values[0] + "\n");
+        }
+    }
+
+    private void sendMessage() {
+        String message = messageInput.getText().toString();
+        if (!message.isEmpty() && out != null) {
+            out.println(message);
+            chatMessages.append("You: " + message + "\n");
+            messageInput.setText("");
+        }
     }
 
     @Override
@@ -61,23 +84,14 @@ public class ChatActivity extends AppCompatActivity {
             if (socket != null) {
                 socket.close();
             }
+            if (out != null) {
+                out.close();
+            }
+            if (in != null) {
+                in.close();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    // Send message
-    private void sendMessage(String message) {
-        new Thread(() -> {
-            try {
-                if (output != null) {
-                    output.write(message + "\n");
-                    output.flush();
-                    runOnUiThread(() -> chatMessages.append("You: " + message + "\n"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
 }

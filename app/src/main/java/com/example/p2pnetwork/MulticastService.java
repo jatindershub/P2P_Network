@@ -1,6 +1,14 @@
 package com.example.p2pnetwork;
 
+import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -10,7 +18,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+
 public class MulticastService extends Thread {
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final String TAG = "MulticastService";
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
     private static final int PORT = 5000;
@@ -22,6 +34,7 @@ public class MulticastService extends Thread {
     private List<NodeInfo> nodeList;
     private int dynamicPort;
 
+    private Context context;
     private MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
@@ -77,7 +90,6 @@ public class MulticastService extends Thread {
                     nodeListUpdater.accept(new ArrayList<>(nodeList));
                 } else if ("JOIN".equals(action)) {
                     NodeInfo discoveredNode = new NodeInfo(nodeId, ip, port);
-
                     boolean nodeExists = false;
                     for (NodeInfo node : nodeList) {
                         if (node.getNodeId().equals(discoveredNode.getNodeId())) {
@@ -91,10 +103,12 @@ public class MulticastService extends Thread {
                         nodeListUpdater.accept(new ArrayList<>(nodeList));
                     }
 
-                    // Update finger table with new node
                     if (localNode != null) {
                         localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
                     }
+                } else if ("CHAT_REQUEST".equals(action)) {
+                    // Handle chat request
+                    handleChatRequest(ip, port);
                 }
             }
         } catch (UnknownHostException e) {
@@ -102,14 +116,37 @@ public class MulticastService extends Thread {
         }
     }
 
-    public void sendMulticastMessage(String message) {
-        try {
-            byte[] buf = message.getBytes();
-            DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
-            socket.send(packet);
-            Log.d(TAG, "Sent message: " + message);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void handleChatRequest(InetAddress ip, int port) {
+        Log.d(TAG, "Chat request from: " + ip.getHostAddress() + ":" + port);
+        // Handle the chat request logic here, e.g., notify the user
+        if (context != null) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast.makeText(context, "Chat request from: " + ip.getHostAddress() + ":" + port, Toast.LENGTH_LONG).show();
+                // Optionally start the ChatActivity
+                Intent intent = new Intent(context, ChatActivity.class);
+                intent.putExtra("ipAddress", ip.getHostAddress());
+                intent.putExtra("port", port);
+                context.startActivity(intent);
+            });
         }
     }
+
+    public void sendMulticastMessage(String message) {
+        executor.execute(() -> {
+            try {
+                byte[] buf = message.getBytes();
+                DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
+                socket.send(packet);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+
+    public void sendChatRequest(String nodeId, String ip, int port) {
+        String message = "CHAT_REQUEST," + nodeId + "," + ip + "," + port;
+        sendMulticastMessage(message);
+    }
+
 }
