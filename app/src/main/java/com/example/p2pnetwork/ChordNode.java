@@ -9,8 +9,6 @@ import java.io.IOException;
 
 public class ChordNode {
     private static final String TAG = "ChordNode";
-    private TcpServer tcpServer;
-    private TcpClient tcpClient;
     private int tcpPort;
     private BigInteger nodeId;
     private InetAddress ip;
@@ -69,7 +67,7 @@ public class ChordNode {
 
     public void setPredecessor(ChordNode predecessor) {
         this.predecessor = predecessor;
-        Log.d(TAG, "Predecessor set to: " + (predecessor != null ? predecessor.getNodeId() : "None"));
+        //Log.d(TAG, "Predecessor set to: " + (predecessor != null ? predecessor.getNodeId() : "None"));
     }
 
     public ChordNode getSuccessor() {
@@ -78,7 +76,7 @@ public class ChordNode {
 
     public void setSuccessor(ChordNode successor) {
         fingerTable[0] = successor;
-        Log.d(TAG, "Successor set to: " + (successor != null ? successor.getNodeId() : "None"));
+        //Log.d(TAG, "Successor set to: " + (successor != null ? successor.getNodeId() : "None"));
     }
 
     public String getFingerTableAsString() {
@@ -92,35 +90,33 @@ public class ChordNode {
     }
 
     public void updateFingerTable(ChordNode newNode) {
-        Log.d(TAG, "Updating finger table with new node: " + newNode.getNodeId());
-
+        BigInteger newId = newNode.getNodeId();
         for (int i = 0; i < M; i++) {
             BigInteger start = nodeId.add(BigInteger.valueOf(2).pow(i)).mod(BigInteger.valueOf(2).pow(M));
-            ChordNode successorNode = findSuccessor(start);
 
-            if (successorNode != null && !successorNode.equals(this)) {
-                fingerTable[i] = successorNode;
-                //Log.d(TAG, "Finger table updated at " + i + " with node " + successorNode.getNodeId());
+            // Check if the current finger table entry is null or needs to be updated
+            if (fingerTable[i] == null || isInInterval(start, nodeId, fingerTable[i].getNodeId())) {
+                ChordNode successorNode = findSuccessor(start);
+
+                // Only update if the new node is different from the current finger
+                if (successorNode != null && !successorNode.equals(this) && !successorNode.equals(fingerTable[i])) {
+                    fingerTable[i] = successorNode;
+                    //Log.d(TAG, "Finger table updated at " + i + " with node " + successorNode.getNodeId());
+                }
             }
         }
 
+        // Update the successor if necessary
         if (getSuccessor() == null || isInInterval(newNode.getNodeId(), nodeId, getSuccessor().getNodeId())) {
             setSuccessor(newNode);
-            Log.d(TAG, "Successor set to: " + newNode.getNodeId());
+            //Log.d(TAG, "Successor set to: " + newNode.getNodeId());
         }
 
+        // Update the predecessor if necessary
         if (predecessor == null || isInInterval(newNode.getNodeId(), predecessor.getNodeId(), nodeId)) {
             setPredecessor(newNode);
-            Log.d(TAG, "Predecessor set to: " + newNode.getNodeId());
+            //Log.d(TAG, "Predecessor set to: " + newNode.getNodeId());
         }
-    }
-
-    public String[] getFingerTableAsStringArray() {
-        String[] fingerTableArray = new String[M];
-        for (int i = 0; i < M; i++) {
-            fingerTableArray[i] = "Finger " + i + ": " + (fingerTable[i] != null ? fingerTable[i].getNodeId() : "None");
-        }
-        return fingerTableArray;
     }
 
     private boolean isInInterval(BigInteger id, BigInteger start, BigInteger end) {
@@ -129,6 +125,15 @@ public class ChordNode {
         } else {
             return id.compareTo(start) > 0 || id.compareTo(end) <= 0;
         }
+    }
+
+
+    public String[] getFingerTableAsStringArray() {
+        String[] fingerTableArray = new String[M];
+        for (int i = 0; i < M; i++) {
+            fingerTableArray[i] = "Finger " + i + ": " + (fingerTable[i] != null ? fingerTable[i].getNodeId() : "None");
+        }
+        return fingerTableArray;
     }
 
     public ChordNode findSuccessor(BigInteger id) {

@@ -14,6 +14,7 @@ public class MulticastService extends Thread {
     private static final String TAG = "MulticastService";
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
     private static final int PORT = 5000;
+    private static MulticastService instance;
     private MulticastSocket socket;
     private InetAddress group;
     private ChordNode localNode;
@@ -21,7 +22,7 @@ public class MulticastService extends Thread {
     private List<NodeInfo> nodeList;
     private int dynamicPort;
 
-    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
+    private MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = port;
@@ -33,6 +34,13 @@ public class MulticastService extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static synchronized MulticastService getInstance(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
+        if (instance == null) {
+            instance = new MulticastService(localNode, nodeListUpdater, port);
+        }
+        return instance;
     }
 
     public void setLocalNode(ChordNode localNode) {
@@ -99,6 +107,7 @@ public class MulticastService extends Thread {
             byte[] buf = message.getBytes();
             DatagramPacket packet = new DatagramPacket(buf, buf.length, group, PORT);
             socket.send(packet);
+            Log.d(TAG, "Sent message: " + message);
         } catch (Exception e) {
             e.printStackTrace();
         }

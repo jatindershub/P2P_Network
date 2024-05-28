@@ -76,8 +76,7 @@ public class MainActivity extends AppCompatActivity {
         int port = NetworkUtils.getAvailablePort();
 
         if (ip != null && port != -1) {
-            // Pass null as localNode since it hasn't been initialized yet
-            multicastService = new MulticastService(null, this::updateNodeList, port);
+            multicastService = MulticastService.getInstance(null, this::updateNodeList, port);
             multicastService.start();
         } else {
             runOnUiThread(() -> nodeStatus.setText("Failed to get IP address or port"));
@@ -160,8 +159,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // Update multicastService to use the new node
-                    multicastService = new MulticastService(node, this::updateNodeList, port);
-                    multicastService.start();
+                    multicastService.setLocalNode(node);
 
                     stabilizationService = new StabilizationService(node, multicastService);
                     stabilizationService.start();
@@ -172,8 +170,6 @@ public class MainActivity extends AppCompatActivity {
                         leaveNetworkButton.setEnabled(true);
                         joinNetworkButton.setEnabled(false);
                     });
-
-                    startTcpServer(); // Start the TCP server for chat
 
                     multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {
