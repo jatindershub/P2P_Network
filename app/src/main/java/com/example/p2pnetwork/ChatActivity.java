@@ -1,6 +1,8 @@
 package com.example.p2pnetwork;
 
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
@@ -11,6 +13,8 @@ import java.net.Socket;
 
 public class ChatActivity extends AppCompatActivity {
     private TextView chatMessages;
+    private EditText messageInput;
+    private Button sendButton;
     private Socket socket;
     private BufferedReader input;
     private OutputStreamWriter output;
@@ -21,6 +25,8 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
         chatMessages = findViewById(R.id.chatMessages);
+        messageInput = findViewById(R.id.messageInput);
+        sendButton = findViewById(R.id.sendButton);
 
         String ipAddress = getIntent().getStringExtra("ipAddress");
         int port = getIntent().getIntExtra("port", -1);
@@ -42,6 +48,27 @@ public class ChatActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }).start();
+
+        sendButton.setOnClickListener(v -> {
+            String messageToSend = messageInput.getText().toString();
+            if (!messageToSend.isEmpty()) {
+                new Thread(() -> {
+                    try {
+                        // Send the message to the other node
+                        output.write(messageToSend + "\n");
+                        output.flush();
+
+                        // Update the chatMessages TextView with the sent message
+                        runOnUiThread(() -> chatMessages.append("Me: " + messageToSend + "\n"));
+
+                        // Clear the input field
+                        runOnUiThread(() -> messageInput.setText(""));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+            }
+        });
     }
 
 
@@ -49,9 +76,9 @@ public class ChatActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         try {
-            if (socket != null) {
-                socket.close();
-            }
+            if (input != null) input.close();
+            if (output != null) output.close();
+            if (socket != null) socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
