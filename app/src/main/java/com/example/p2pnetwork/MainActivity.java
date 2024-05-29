@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
         leaveNetworkButton.setOnClickListener(v -> new Thread(this::leaveNetwork).start());
         viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
-        startChatButton.setOnClickListener(v -> startChat());
+        //startChatButton.setOnClickListener(v -> startChat());
     }
 
     private void onNodeItemClick(NodeInfo nodeInfo) {
@@ -199,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+
     private void joinNetwork() {
         new Thread(() -> {
             try {
@@ -224,17 +225,20 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // Update multicastService to use the new node
-                    multicastService.setLocalNode(node);
+                    multicastService = new MulticastService(node, this::updateNodeList, port);
+                    multicastService.start();
 
                     stabilizationService = new StabilizationService(node, multicastService);
                     stabilizationService.start();
 
                     runOnUiThread(() -> {
-                        nodeStatus.setText("Your information; IP: " + ip.getHostAddress() + ", Port: " + port);
+                        nodeStatus.setText("Node ID: " + node.getNodeId());
                         viewDetailsButton.setEnabled(true);
                         leaveNetworkButton.setEnabled(true);
                         joinNetworkButton.setEnabled(false);
                     });
+
+                    startTcpServer(); // Start the TCP server for chat
 
                     multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {
@@ -245,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
+
 
 
     private void leaveNetwork() {

@@ -35,7 +35,7 @@ public class MulticastService extends Thread {
     private int dynamicPort;
 
     private Context context;
-    private MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
+    public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = port;
