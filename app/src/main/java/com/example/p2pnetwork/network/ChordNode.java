@@ -1,11 +1,11 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.network;
 
-import android.util.Log;
+import com.example.p2pnetwork.models.NodeInfo;
+
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.io.IOException;
 
 public class ChordNode {
     private static final String TAG = "ChordNode";

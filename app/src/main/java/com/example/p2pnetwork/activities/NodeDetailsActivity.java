@@ -1,4 +1,4 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -8,6 +8,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.p2pnetwork.R;
 
 public class NodeDetailsActivity extends AppCompatActivity {
 

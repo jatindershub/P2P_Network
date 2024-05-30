@@ -1,4 +1,4 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.services;
 
 import android.content.Context;
 import android.content.Intent;
@@ -7,7 +7,9 @@ import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import com.example.p2pnetwork.activities.ChatActivity;
+import com.example.p2pnetwork.models.NodeInfo;
+import com.example.p2pnetwork.network.ChordNode;
 
 import java.math.BigInteger;
 import java.net.DatagramPacket;

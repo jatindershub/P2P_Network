@@ -1,4 +1,4 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.services;
 
 import android.content.Context;
 import android.content.Intent;

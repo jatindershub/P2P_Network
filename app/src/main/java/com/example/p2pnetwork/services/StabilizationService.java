@@ -1,8 +1,10 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.services;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
+
+import com.example.p2pnetwork.network.ChordNode;
+
 import java.math.BigInteger;
 
 public class StabilizationService extends Thread {

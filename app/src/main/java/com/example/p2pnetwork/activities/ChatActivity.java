@@ -1,10 +1,13 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.activities;
 
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.p2pnetwork.R;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;

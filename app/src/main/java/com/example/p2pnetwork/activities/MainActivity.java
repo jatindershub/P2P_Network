@@ -1,11 +1,10 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.activities;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -16,6 +15,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.p2pnetwork.network.ChordNode;
+import com.example.p2pnetwork.services.MulticastService;
+import com.example.p2pnetwork.network.NetworkUtils;
+import com.example.p2pnetwork.models.NodeInfo;
+import com.example.p2pnetwork.adapters.NodesAdapter;
+import com.example.p2pnetwork.R;
+import com.example.p2pnetwork.services.StabilizationService;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

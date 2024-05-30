@@ -1,11 +1,14 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import androidx.annotation.NonNull;
+
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.p2pnetwork.models.NodeInfo;
+import com.example.p2pnetwork.R;
 
 import java.util.List;
 

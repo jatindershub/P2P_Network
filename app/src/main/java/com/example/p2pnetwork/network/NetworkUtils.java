@@ -1,4 +1,4 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.network;
 
 import java.io.IOException;
 import java.net.InetAddress;

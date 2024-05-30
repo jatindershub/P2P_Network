@@ -1,4 +1,4 @@
-package com.example.p2pnetwork;
+package com.example.p2pnetwork.models;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
