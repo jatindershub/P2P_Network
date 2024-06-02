@@ -12,7 +12,6 @@ import com.example.p2pnetwork.R;
 
 import java.util.List;
 
-// NodesAdapter.java
 public class NodesAdapter extends RecyclerView.Adapter<NodesAdapter.NodeViewHolder> {
     private List<NodeInfo> nodes;
     private OnItemClickListener listener;

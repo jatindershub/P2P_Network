@@ -41,18 +41,26 @@ public class MainActivity extends AppCompatActivity {
     private TextView nodeStatus;
     private Button joinNetworkButton;
     private Button leaveNetworkButton;
-    private Button viewDetailsButton;
     private RecyclerView nodesRecyclerView;
     private NodesAdapter nodesAdapter;
     private List<NodeInfo> nodeList;
     private EditText ipAddressInput;
     private EditText portInput;
+    private Button startChatButton;
+    private Button viewDetailsButton;
 
+    /* onCreate is called only once throughout the entire lifecycle of the activity, meaning it’s the place to set up components that should persist for the life of the activity.
+    The method takes a Bundle parameter called savedInstanceState, which contains the activity's previously saved state.
+    If the activity is being re-initialized after previously being shut down, this bundle contains the data it most recently supplied in onSaveInstanceState.
+    This is useful for restoring the activity to its previous state.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // findViewById() is used to find a view in the current layout hierarchy with the specified ID
+        // The R class is a generated class in Android that contains references to all the resources in your project
         nodeStatus = findViewById(R.id.nodeStatus);
         joinNetworkButton = findViewById(R.id.joinNetworkButton);
         leaveNetworkButton = findViewById(R.id.leaveNetworkButton);
@@ -61,44 +69,54 @@ public class MainActivity extends AppCompatActivity {
         ipAddressInput = findViewById(R.id.ipAddressInput);
         portInput = findViewById(R.id.portInput);
         nodesRecyclerView = findViewById(R.id.nodesRecyclerView);
+        startChatButton = findViewById(R.id.startChatButton);
 
-        EditText ipAddressInput = findViewById(R.id.ipAddressInput);
-        EditText portInput = findViewById(R.id.portInput);
-        Button startChatButton = findViewById(R.id.startChatButton);
-
+        // The OnClickListener is an interface used to receive click events
+        // The button startChatButton is listening if it is being pressed/clicked
         startChatButton.setOnClickListener(v -> {
             String ipAddress = ipAddressInput.getText().toString();
             int port = Integer.parseInt(portInput.getText().toString());
 
+            // Creates an new intent object that will be used to start the ChatActivity class
             Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+
+            // Passed extra data, that will be passed on to the ChatActivity class
             intent.putExtra("ipAddress", ipAddress);
             intent.putExtra("port", port);
             startActivity(intent);
         });
 
+        // This initializes nodeList as an empty ArrayList of NodeInfo objects. nodeList will hold the data that the RecyclerView will display.
         nodeList = new ArrayList<>();
+
+        // This initializes nodesAdapter, an instance of the NodesAdapter class, passing nodeList to its constructor.
+        // NodesAdapter is the adapter for the RecyclerView, which binds the data in nodeList to the views displayed in each item of the RecyclerView.
         nodesAdapter = new NodesAdapter(nodeList);
+
+        // This sets the layout manager for nodesRecyclerView to a LinearLayoutManager.
+        // The LinearLayoutManager arranges the items in a vertical or horizontal scrolling list (default is vertical).
         nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // This sets the adapter for nodesRecyclerView to nodesAdapter. This connects the RecyclerView with its data and the logic to display it.
         nodesRecyclerView.setAdapter(nodesAdapter);
 
-        // Set up item click listener for RecyclerView items
+        // This sets an item click listener on the nodesAdapter.
+        // The setOnItemClickListener method is a method defined in the NodesAdapter class, which allows you to handle click events on items in the RecyclerView.
         nodesAdapter.setOnItemClickListener(nodeInfo -> {
             ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
             portInput.setText(String.valueOf(nodeInfo.getPort()));
         });
 
+        // Starts the node discovery mechanism
         startMulticastService();
-        LocalBroadcastManager.getInstance(this).registerReceiver(chatRequestReceiver, new IntentFilter("CHAT_REQUEST_RECEIVED"));
+
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(chatRequestReceiver, new IntentFilter("CHAT_REQUEST"));
 
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
         leaveNetworkButton.setOnClickListener(v -> new Thread(this::leaveNetwork).start());
         viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
-        //startChatButton.setOnClickListener(v -> startChat());
-    }
-
-    private void onNodeItemClick(NodeInfo nodeInfo) {
-        ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
-        portInput.setText(String.valueOf(nodeInfo.getPort()));
+        //startChatButton.setOnClickListener(v -> startChat()); // todo:
     }
 
     @Override
@@ -136,17 +154,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Call this method when the "Start Chat" button is clicked
-    private void onStartChatButtonClick() {
-        String ip = ipAddressInput.getText().toString();
-        int port = Integer.parseInt(portInput.getText().toString());
-        startChat(ip, port);
-    }
-
     private void startMulticastService() {
         InetAddress ip = NetworkUtils.getIPAddress();
         int port = NetworkUtils.getAvailablePort();
 
+        // Conditional statement checks if the IP and port are valid
         if (ip != null && port != -1) {
             multicastService = MulticastService.getInstance(null, this::updateNodeList, port);
             multicastService.start();
@@ -203,10 +215,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
-
-
     private void joinNetwork() {
         new Thread(() -> {
             try {
@@ -257,8 +265,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-
-
     private void leaveNetwork() {
         if (multicastService != null && node != null) {
             multicastService.sendMulticastMessage("LEAVE," + node.getNodeId() + "," + node.getIp().getHostAddress() + "," + node.getDynamicPort());
@@ -287,44 +293,5 @@ public class MainActivity extends AppCompatActivity {
             nodeList.addAll(newNodeList);
             nodesAdapter.notifyDataSetChanged();
         });
-    }
-
-    private void fillInNodeDetails(NodeInfo nodeInfo) {
-        ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
-        portInput.setText(String.valueOf(nodeInfo.getPort()));
-    }
-
-    private void startChat() {
-        String ipAddress = ipAddressInput.getText().toString();
-        String portString = portInput.getText().toString();
-        int port = Integer.parseInt(portString);
-
-        if (!ipAddress.isEmpty() && port > 0) {
-            // Ensure this runs on a background thread
-            new AsyncTask<Void, Void, Void>() {
-                @Override
-                protected Void doInBackground(Void... voids) {
-                    multicastService.sendMulticastMessage("CHAT_REQUEST," + ipAddress + "," + port);
-                    return null;
-                }
-
-                @Override
-                protected void onPostExecute(Void aVoid) {
-                    Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-                    intent.putExtra("ipAddress", ipAddress);
-                    intent.putExtra("port", port);
-                    startActivity(intent);
-                }
-            }.execute();
-        }
-    }
-
-
-
-    private void openChatActivity(String ip, int port) {
-        Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-        intent.putExtra("ip", ip);
-        intent.putExtra("port", port);
-        startActivity(intent);
     }
 }

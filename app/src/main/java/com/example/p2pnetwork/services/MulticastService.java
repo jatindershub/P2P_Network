@@ -26,8 +26,6 @@ import java.util.concurrent.ExecutorService;
 public class MulticastService extends Thread {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final String TAG = "MulticastService";
-    private static final String MULTICAST_ADDRESS = "224.0.0.1";
-    private static final int PORT = 5000;
     private static MulticastService instance;
     private MulticastSocket socket;
     private InetAddress group;
@@ -35,8 +33,9 @@ public class MulticastService extends Thread {
     private Consumer<List<NodeInfo>> nodeListUpdater;
     private List<NodeInfo> nodeList;
     private int dynamicPort;
-
     private Context context;
+    private static final int PORT = 5000;
+    private static final String MULTICAST_ADDRESS = "224.0.0.1";
     public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
@@ -56,10 +55,6 @@ public class MulticastService extends Thread {
             instance = new MulticastService(localNode, nodeListUpdater, port);
         }
         return instance;
-    }
-
-    public void setLocalNode(ChordNode localNode) {
-        this.localNode = localNode;
     }
 
     @Override
