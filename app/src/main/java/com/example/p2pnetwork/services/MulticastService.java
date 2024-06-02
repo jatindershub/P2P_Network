@@ -121,7 +121,7 @@ public class MulticastService extends Thread {
                 Toast.makeText(context, "Chat request from: " + ip.getHostAddress() + ":" + port, Toast.LENGTH_LONG).show();
                 // Optionally start the ChatActivity
                 Intent intent = new Intent(context, ChatActivity.class);
-                intent.putExtra("ipAddress", ip.getHostAddress());
+                intent.putExtra("ip", ip.getHostAddress());
                 intent.putExtra("port", port);
                 context.startActivity(intent);
             });

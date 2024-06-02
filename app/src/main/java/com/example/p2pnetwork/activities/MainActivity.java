@@ -49,6 +49,23 @@ public class MainActivity extends AppCompatActivity {
     private Button startChatButton;
     private Button viewDetailsButton;
 
+    private BroadcastReceiver chatRequestReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String nodeId = intent.getStringExtra("nodeId");
+            String ip = intent.getStringExtra("ip");
+            int port = intent.getIntExtra("port", -1);
+
+
+            // Open chat window
+            Intent chatIntent = new Intent(MainActivity.this, ChatActivity.class);
+            chatIntent.putExtra("nodeId", nodeId);
+            chatIntent.putExtra("ip", ip);
+            chatIntent.putExtra("port", port);
+            startActivity(chatIntent);
+        }
+    };
+
     /* onCreate is called only once throughout the entire lifecycle of the activity, meaning it’s the place to set up components that should persist for the life of the activity.
     The method takes a Bundle parameter called savedInstanceState, which contains the activity's previously saved state.
     If the activity is being re-initialized after previously being shut down, this bundle contains the data it most recently supplied in onSaveInstanceState.
@@ -81,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, ChatActivity.class);
 
             // Passed extra data, that will be passed on to the ChatActivity class
-            intent.putExtra("ipAddress", ipAddress);
+            intent.putExtra("ip", ipAddress);
             intent.putExtra("port", port);
             startActivity(intent);
         });
@@ -110,8 +127,15 @@ public class MainActivity extends AppCompatActivity {
         // Starts the node discovery mechanism
         startMulticastService();
 
+        //LocalBroadcastManager.getInstance(this).registerReceiver(chatRequestReceiver, new IntentFilter("CHAT_REQUEST"));
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(chatRequestReceiver, new IntentFilter("CHAT_REQUEST"));
+        // Register the BroadcastReceiver with the appropriate flag
+        IntentFilter filter = new IntentFilter("CHAT_REQUEST");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            registerReceiver(chatRequestReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(chatRequestReceiver, filter);
+        }
 
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
         leaveNetworkButton.setOnClickListener(v -> new Thread(this::leaveNetwork).start());
@@ -122,36 +146,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(chatRequestReceiver);
-    }
+        //LocalBroadcastManager.getInstance(this).unregisterReceiver(chatRequestReceiver);
 
-    private BroadcastReceiver chatRequestReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String nodeId = intent.getStringExtra("nodeId");
-            String ip = intent.getStringExtra("ip");
-            int port = intent.getIntExtra("port", -1);
-
-            // Open chat window
-            Intent chatIntent = new Intent(MainActivity.this, ChatActivity.class);
-            chatIntent.putExtra("nodeId", nodeId);
-            chatIntent.putExtra("ip", ip);
-            chatIntent.putExtra("port", port);
-            startActivity(chatIntent);
-        }
-    };
-
-    private void startChat(String ip, int port) {
-        if (node != null) {
-            multicastService.sendChatRequest(node.getNodeId().toString(), ip, port);
-
-            // Open chat window
-            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-            intent.putExtra("nodeId", node.getNodeId().toString());
-            intent.putExtra("ip", ip);
-            intent.putExtra("port", port);
-            startActivity(intent);
-        }
+        // Unregister the BroadcastReceiver
+        unregisterReceiver(chatRequestReceiver);
     }
 
     private void startMulticastService() {
@@ -197,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, "New chat request", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-                    intent.putExtra("ipAddress", clientSocket.getInetAddress().getHostAddress());
+                    intent.putExtra("ip", clientSocket.getInetAddress().getHostAddress());
                     intent.putExtra("port", clientSocket.getPort());
                     startActivity(intent);
                 });
