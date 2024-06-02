@@ -73,7 +73,7 @@ public class MulticastService extends Thread {
     }
 
     private void handleReceivedMessage(String message) {
-        Log.d(TAG, "Received message: " + message);
+        //Log.d(TAG, "Received message: " + message);
         try {
             String[] parts = message.split(",");
             if (parts.length == 4) {
