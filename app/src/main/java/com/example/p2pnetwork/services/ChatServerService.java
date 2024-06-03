@@ -1,8 +1,14 @@
 package com.example.p2pnetwork.services;
 
 import java.net.InetAddress;
+
+import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
+import com.example.p2pnetwork.activities.ChatActivity;
 import com.example.p2pnetwork.models.Message;
 import com.google.gson.Gson;
 
@@ -19,10 +25,12 @@ public class ChatServerService {
     private BufferedReader input;
     private PrintWriter output;
     private int port;
-    private String ipAddress;
     private MessageListener messageListener;
+    private Context context;
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    public ChatServerService(int port) {
+    public ChatServerService(Context context, int port) {
+        this.context = context;
         this.port = port;
     }
 
@@ -32,15 +40,27 @@ public class ChatServerService {
                 serverSocket = new ServerSocket(port, 0, InetAddress.getByName("0.0.0.0"));
                 Log.d("ChatServerService", "Server started on port " + port);
 
-                // Accept incoming connections
-                clientSocket = serverSocket.accept();
-                Log.d("ChatServerService", "Client connected from " + clientSocket.getInetAddress());
+                while (true) {
+                    clientSocket = serverSocket.accept();
+                    String clientAddress = clientSocket.getInetAddress().getHostAddress();
+                    Log.d("ChatServerService", "Client connected from " + clientAddress);
 
-                input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                output = new PrintWriter(clientSocket.getOutputStream(), true);
+                    input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-                // Start listening for messages
-                listenForMessages();
+                    // Get the server's IP address
+                    String serverAddress = serverSocket.getInetAddress().getHostAddress();
+
+                    // Notify the MainActivity that the connection is established and start ChatActivity
+                    mainHandler.post(() -> {
+                        Intent intent = new Intent(context, ChatActivity.class);
+                        intent.putExtra("ipAddress", serverAddress);
+                        intent.putExtra("port", port);
+                        context.startActivity(intent);
+                    });
+
+                    listenForMessages();
+                }
             } catch (IOException e) {
                 Log.e("ChatServerService", "Error starting server", e);
             }

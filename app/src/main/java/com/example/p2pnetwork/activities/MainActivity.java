@@ -76,7 +76,6 @@ public class MainActivity extends AppCompatActivity {
         startServer();
 
         // Set up the button click listener
-        // TODO: HVOR BRUGES VIEW VIEW?
         startChatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -84,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 int port = Integer.parseInt(portInput.getText().toString());
 
                 // Connect to the server (self or other device)
-                chatService = new ChatService(ipAddress, port);
+                chatService = new ChatService(MainActivity.this, ipAddress, port);
                 chatService.start();
                 chatService.setMessageListener(new ChatService.MessageListener() {
                     @Override
@@ -120,7 +119,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startServer() {
-        chatServerService = new ChatServerService(SERVER_PORT);
+        /*NetworkUtils networkUtils = new NetworkUtils();
+        InetAddress ip = networkUtils.getIPAddress();
+        chatServerService = new ChatServerService(MainActivity.this, SERVER_PORT,ip.getHostAddress());*/
+        chatServerService = new ChatServerService(MainActivity.this, SERVER_PORT);
         chatServerService.start();
         chatServerService.setMessageListener(new ChatServerService.MessageListener() {
             @Override

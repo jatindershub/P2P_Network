@@ -103,28 +103,10 @@ public class MulticastService extends Thread {
                     if (localNode != null) {
                         localNode.updateFingerTable(new ChordNode(ip, nodeId, port));
                     }
-                } else if ("CHAT_REQUEST".equals(action)) {
-                    // Handle chat request
-                    handleChatRequest(ip, port);
                 }
             }
         } catch (UnknownHostException e) {
             e.printStackTrace();
-        }
-    }
-
-    private void handleChatRequest(InetAddress ip, int port) {
-        Log.d(TAG, "Chat request from: " + ip.getHostAddress() + ":" + port);
-        // Handle the chat request logic here, e.g., notify the user
-        if (context != null) {
-            new Handler(Looper.getMainLooper()).post(() -> {
-                Toast.makeText(context, "Chat request from: " + ip.getHostAddress() + ":" + port, Toast.LENGTH_LONG).show();
-                // Optionally start the ChatActivity
-                Intent intent = new Intent(context, ChatActivity.class);
-                intent.putExtra("ip", ip.getHostAddress());
-                intent.putExtra("port", port);
-                context.startActivity(intent);
-            });
         }
     }
 
@@ -139,11 +121,4 @@ public class MulticastService extends Thread {
             }
         });
     }
-
-
-    public void sendChatRequest(String nodeId, String ip, int port) {
-        String message = "CHAT_REQUEST," + nodeId + "," + ip + "," + port;
-        sendMulticastMessage(message);
-    }
-
 }

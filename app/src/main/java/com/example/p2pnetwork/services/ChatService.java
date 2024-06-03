@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+
+import com.example.p2pnetwork.activities.ChatActivity;
 import com.google.gson.Gson;
 import com.example.p2pnetwork.models.Message;
 
@@ -22,8 +24,10 @@ public class ChatService {
     private MessageListener messageListener;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private Gson gson = new Gson();
+    private Context context;
 
-    public ChatService(String ipAddress, int port) {
+    public ChatService(Context context, String ipAddress, int port) {
+        this.context = context;
         this.ipAddress = ipAddress;
         this.port = port;
     }
@@ -37,10 +41,22 @@ public class ChatService {
                 input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 output = new PrintWriter(socket.getOutputStream(), true);
 
+                // Get the client's IP address
+                String clientAddress = socket.getLocalAddress().getHostAddress();
+                Log.d("ChatService", "ClientAddress: " + clientAddress);
+
+                // Notify the MainActivity that the connection is established and start ChatActivity
+                mainHandler.post(() -> {
+                    Intent intent = new Intent(context, ChatActivity.class);
+                    intent.putExtra("ipAddress", clientAddress);
+                    //intent.putExtra("ipAddress", "192.168.1.76");
+                    intent.putExtra("port", port);
+                    context.startActivity(intent);
+                });
+
                 // Start listening for messages
                 listenForMessages();
             } catch (IOException e) {
-                Log.e("ChatService", "Error establishing TCP connection", e);
                 e.printStackTrace();
             }
         }).start();
