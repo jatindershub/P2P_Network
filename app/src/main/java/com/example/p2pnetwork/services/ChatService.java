@@ -2,14 +2,18 @@ package com.example.p2pnetwork.services;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
+
+import com.example.p2pnetwork.activities.ChatActivity;
+import com.google.gson.Gson;
+import com.example.p2pnetwork.models.Message;
 
 public class ChatService {
     private Socket socket;
@@ -17,45 +21,107 @@ public class ChatService {
     private PrintWriter output;
     private String ipAddress;
     private int port;
+    private MessageListener messageListener;
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
+    private Gson gson = new Gson();
+    private Context context;
+    private boolean isReady = false;
 
-    public ChatService(String ipAddress, int port) {
+    public ChatService(Context context, String ipAddress, int port) {
+        this.context = context;
         this.ipAddress = ipAddress;
         this.port = port;
     }
 
-    public void start() {
+    public synchronized void start() {
         new Thread(() -> {
             try {
-                socket = new Socket(ipAddress, port);
+                Log.d("ChatService", "Attempting to establish TCP connection with " + ipAddress + ":" + port);
+                socket = new Socket(ipAddress, port); // Establishing the TCP connection
+                Log.d("ChatService", "TCP connection established with " + ipAddress + ":" + port);
+
                 input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 output = new PrintWriter(socket.getOutputStream(), true);
+
+                // Set the flag to indicate readiness
+                synchronized (this) {
+                    isReady = true;
+                    Log.d("ChatService", "Setting isReady to true");
+                    notifyAll();
+                }
+                Log.d("ChatService", "Connection is ready");
+
+                // Get the client's IP address
+                String clientAddress = socket.getLocalAddress().getHostAddress();
+                Log.d("ChatService", "ClientAddress: " + clientAddress);
+
+                // Notify the MainActivity that the connection is established and start ChatActivity
+                mainHandler.post(() -> {
+                    Intent intent = new Intent(context, ChatActivity.class);
+                    intent.putExtra("ipAddress", clientAddress);
+                    intent.putExtra("port", port);
+                    Log.d("ChatService", "Starting ChatActivity with IP: " + clientAddress + " and Port: " + port);
+                    context.startActivity(intent);
+                });
 
                 // Start listening for messages
                 listenForMessages();
             } catch (IOException e) {
+                Log.e("ChatService", "Error establishing TCP connection", e);
                 e.printStackTrace();
+                synchronized (this) {
+                    isReady = false;
+                    notifyAll();
+                }
             }
         }).start();
     }
 
     private void listenForMessages() {
         try {
-            String message;
-            while ((message = input.readLine()) != null) {
-                Log.d("ChatService", "Received message: " + message);
-                // Handle received messages, possibly update UI
+            String messageJson;
+            while ((messageJson = input.readLine()) != null) {
+                Log.d("ChatService", "Received message: " + messageJson);
+                if (messageListener != null) {
+                    Message message = gson.fromJson(messageJson, Message.class);
+                    Log.d("ChatService", "Passing message to listener: " + message.getMessage());
+                    mainHandler.post(() -> messageListener.onMessageReceived(message));
+                }
             }
         } catch (IOException e) {
+            Log.e("ChatService", "Error listening for messages", e);
             e.printStackTrace();
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(Message message) {
+        Log.d("ChatService", "sendMessage called");
         new Thread(() -> {
+            Log.d("ChatService", "sendMessage thread started");
+            waitForReady();
+            Log.d("ChatService", "waitForReady completed");
             if (output != null) {
-                output.println(message);
+                String messageJson = gson.toJson(message);
+                output.println(messageJson); // Send message over TCP connection
+                output.flush();
+                Log.d("ChatService", "Sent message: " + messageJson);
+            } else {
+                Log.e("ChatService", "Output stream is null, message not sent");
             }
         }).start();
+    }
+
+    private synchronized void waitForReady() {
+        while (!isReady) {
+            try {
+                Log.d("ChatService", "Waiting for readiness");
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Log.e("ChatService", "Thread interrupted while waiting for readiness", e);
+            }
+        }
+        Log.d("ChatService", "Service is ready");
     }
 
     public void stop() {
@@ -64,8 +130,17 @@ public class ChatService {
                 socket.close();
             }
         } catch (IOException e) {
+            Log.e("ChatService", "Error closing socket", e);
             e.printStackTrace();
         }
     }
-}
 
+    public void setMessageListener(MessageListener listener) {
+        this.messageListener = listener;
+        Log.d("ChatService", "MessageListener set");
+    }
+
+    public interface MessageListener {
+        void onMessageReceived(Message message);
+    }
+}

@@ -1,26 +1,34 @@
 package com.example.p2pnetwork.activities;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.p2pnetwork.R;
+import com.example.p2pnetwork.models.Message;
+import com.example.p2pnetwork.services.ChatServerService;
+import com.example.p2pnetwork.services.ChatService;
+import com.google.gson.Gson;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class ChatActivity extends AppCompatActivity {
     private TextView chatMessages;
     private EditText messageInput;
     private Button sendButton;
-    private Socket socket;
-    private BufferedReader input;
-    private OutputStreamWriter output;
+    private ChatService chatService;
+    private String ipAddress;
+    private int port;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,74 +39,40 @@ public class ChatActivity extends AppCompatActivity {
         messageInput = findViewById(R.id.messageInput);
         sendButton = findViewById(R.id.sendButton);
 
-        String ipAddress = getIntent().getStringExtra("ipAddress");
-        int port = getIntent().getIntExtra("port", -1);
+        ipAddress = getIntent().getStringExtra("ipAddress");
+        port = getIntent().getIntExtra("port", -1);
 
-        new Thread(() -> {
-            try {
-                // Establish the TCP connection
-                socket = new Socket(ipAddress, port);
-                input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                output = new OutputStreamWriter(socket.getOutputStream());
-
-                // Listen for messages
-                String message;
-                while ((message = input.readLine()) != null) {
-                    final String finalMessage = message; // Make the variable effectively final
-                    runOnUiThread(() -> chatMessages.append("Node: " + finalMessage + "\n"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-        sendButton.setOnClickListener(v -> {
-            String messageToSend = messageInput.getText().toString();
-            if (!messageToSend.isEmpty()) {
-                new Thread(() -> {
-                    try {
-                        // Send the message to the other node
-                        output.write(messageToSend + "\n");
-                        output.flush();
-
-                        // Update the chatMessages TextView with the sent message
-                        runOnUiThread(() -> chatMessages.append("Me: " + messageToSend + "\n"));
-
-                        // Clear the input field
-                        runOnUiThread(() -> messageInput.setText(""));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+        // Initialize and start the ChatService
+        chatService = new ChatService(this, ipAddress, port);
+        chatService.setMessageListener(new ChatService.MessageListener() {
+            @Override
+            public void onMessageReceived(Message message) {
+                runOnUiThread(() -> {
+                    String messageText = "Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n";
+                    chatMessages.append(messageText);
+                    Log.d("ChatActivity", "Updating UI with message: " + messageText);
+                });
             }
         });
-    }
 
+        sendButton.setOnClickListener(v -> {
+            String messageText = messageInput.getText().toString();
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            Message message = new Message(messageText, timestamp, ipAddress);
+
+            Log.d("ChatActivity", "Sending message: " + message.getMessage());
+            chatService.sendMessage(message);
+            chatMessages.append("Me: " + message.getMessage() + " [" + message.getTimestamp() + "]\n");
+            messageInput.setText("");
+        });
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        try {
-            if (input != null) input.close();
-            if (output != null) output.close();
-            if (socket != null) socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (chatService != null) {
+            chatService.stop();
         }
     }
 
-    // Send message
-    private void sendMessage(String message) {
-        new Thread(() -> {
-            try {
-                if (output != null) {
-                    output.write(message + "\n");
-                    output.flush();
-                    runOnUiThread(() -> chatMessages.append("You: " + message + "\n"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
 }
