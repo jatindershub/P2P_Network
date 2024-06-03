@@ -27,11 +27,7 @@ public class ChatActivity extends AppCompatActivity {
     private EditText messageInput;
     private Button sendButton;
     private ChatService chatService;
-    private ChatServerService chatServerService;
     private String ipAddress;
-    private String nodeId;
-    private Gson gson = new Gson();
-    private boolean isServer;
     private int port;
 
     @Override
@@ -64,6 +60,7 @@ public class ChatActivity extends AppCompatActivity {
             String timestamp = String.valueOf(System.currentTimeMillis());
             Message message = new Message(messageText, timestamp, ipAddress);
 
+            Log.d("ChatActivity", "Sending message: " + message.getMessage());
             chatService.sendMessage(message);
             chatMessages.append("Me: " + message.getMessage() + " [" + message.getTimestamp() + "]\n");
             messageInput.setText("");

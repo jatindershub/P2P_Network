@@ -84,19 +84,6 @@ public class ChatServerService {
         }).start();
     }
 
-    public void sendMessage(Message message) {
-        new Thread(() -> {
-            if (output != null) {
-                String messageJson = new Gson().toJson(message);
-                output.println(messageJson);
-                output.flush();
-                Log.d("ChatServerService", "Sent message: " + messageJson);
-            } else {
-                Log.e("ChatServerService", "Output stream is null, message not sent");
-            }
-        }).start();
-    }
-
     public void stop() {
         try {
             if (clientSocket != null) {

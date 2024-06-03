@@ -119,9 +119,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startServer() {
-        /*NetworkUtils networkUtils = new NetworkUtils();
-        InetAddress ip = networkUtils.getIPAddress();
-        chatServerService = new ChatServerService(MainActivity.this, SERVER_PORT,ip.getHostAddress());*/
         chatServerService = new ChatServerService(MainActivity.this, SERVER_PORT);
         chatServerService.start();
         chatServerService.setMessageListener(new ChatServerService.MessageListener() {

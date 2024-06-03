@@ -25,6 +25,7 @@ public class ChatService {
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private Gson gson = new Gson();
     private Context context;
+    private boolean isReady = false;
 
     public ChatService(Context context, String ipAddress, int port) {
         this.context = context;
@@ -32,14 +33,23 @@ public class ChatService {
         this.port = port;
     }
 
-    public void start() {
+    public synchronized void start() {
         new Thread(() -> {
             try {
+                Log.d("ChatService", "Attempting to establish TCP connection with " + ipAddress + ":" + port);
                 socket = new Socket(ipAddress, port); // Establishing the TCP connection
                 Log.d("ChatService", "TCP connection established with " + ipAddress + ":" + port);
 
                 input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 output = new PrintWriter(socket.getOutputStream(), true);
+
+                // Set the flag to indicate readiness
+                synchronized (this) {
+                    isReady = true;
+                    Log.d("ChatService", "Setting isReady to true");
+                    notifyAll();
+                }
+                Log.d("ChatService", "Connection is ready");
 
                 // Get the client's IP address
                 String clientAddress = socket.getLocalAddress().getHostAddress();
@@ -49,15 +59,20 @@ public class ChatService {
                 mainHandler.post(() -> {
                     Intent intent = new Intent(context, ChatActivity.class);
                     intent.putExtra("ipAddress", clientAddress);
-                    //intent.putExtra("ipAddress", "192.168.1.76");
                     intent.putExtra("port", port);
+                    Log.d("ChatService", "Starting ChatActivity with IP: " + clientAddress + " and Port: " + port);
                     context.startActivity(intent);
                 });
 
                 // Start listening for messages
                 listenForMessages();
             } catch (IOException e) {
+                Log.e("ChatService", "Error establishing TCP connection", e);
                 e.printStackTrace();
+                synchronized (this) {
+                    isReady = false;
+                    notifyAll();
+                }
             }
         }).start();
     }
@@ -80,7 +95,11 @@ public class ChatService {
     }
 
     public void sendMessage(Message message) {
+        Log.d("ChatService", "sendMessage called");
         new Thread(() -> {
+            Log.d("ChatService", "sendMessage thread started");
+            waitForReady();
+            Log.d("ChatService", "waitForReady completed");
             if (output != null) {
                 String messageJson = gson.toJson(message);
                 output.println(messageJson); // Send message over TCP connection
@@ -90,6 +109,19 @@ public class ChatService {
                 Log.e("ChatService", "Output stream is null, message not sent");
             }
         }).start();
+    }
+
+    private synchronized void waitForReady() {
+        while (!isReady) {
+            try {
+                Log.d("ChatService", "Waiting for readiness");
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Log.e("ChatService", "Thread interrupted while waiting for readiness", e);
+            }
+        }
+        Log.d("ChatService", "Service is ready");
     }
 
     public void stop() {
