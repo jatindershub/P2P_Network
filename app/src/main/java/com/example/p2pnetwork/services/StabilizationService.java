@@ -81,10 +81,6 @@ public class StabilizationService extends Thread {
         }).start();
     }
 
-
-
-
-
     private boolean isInInterval(BigInteger id, BigInteger start, BigInteger end) {
         if (start.compareTo(end) < 0) {
             return id.compareTo(start) > 0 && id.compareTo(end) <= 0;

@@ -1,26 +1,16 @@
 package com.example.p2pnetwork.activities;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.p2pnetwork.R;
 import com.example.p2pnetwork.models.Message;
-import com.example.p2pnetwork.services.ChatServerService;
 import com.example.p2pnetwork.services.ChatService;
-import com.google.gson.Gson;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class ChatActivity extends AppCompatActivity {
     private TextView chatMessages;
@@ -74,5 +64,4 @@ public class ChatActivity extends AppCompatActivity {
             chatService.stop();
         }
     }
-
 }

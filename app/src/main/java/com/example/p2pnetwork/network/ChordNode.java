@@ -79,16 +79,6 @@ public class ChordNode {
         //Log.d(TAG, "Successor set to: " + (successor != null ? successor.getNodeId() : "None"));
     }
 
-    public String getFingerTableAsString() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < M; i++) {
-            if (fingerTable[i] != null) {
-                sb.append("Finger ").append(i).append(": ").append(fingerTable[i].getNodeId()).append("\n");
-            }
-        }
-        return sb.toString();
-    }
-
     public void updateFingerTable(ChordNode newNode) {
         BigInteger newId = newNode.getNodeId();
         for (int i = 0; i < M; i++) {
@@ -127,7 +117,6 @@ public class ChordNode {
         }
     }
 
-
     public String[] getFingerTableAsStringArray() {
         String[] fingerTableArray = new String[M];
         for (int i = 0; i < M; i++) {
@@ -156,7 +145,4 @@ public class ChordNode {
         }
         return this;
     }
-
-
-
 }

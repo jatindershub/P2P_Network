@@ -1,40 +1,29 @@
 package com.example.p2pnetwork.activities;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.os.AsyncTask;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.p2pnetwork.R;
+import com.example.p2pnetwork.adapters.NodesAdapter;
 import com.example.p2pnetwork.models.Message;
+import com.example.p2pnetwork.models.NodeInfo;
 import com.example.p2pnetwork.network.ChordNode;
+import com.example.p2pnetwork.network.NetworkUtils;
 import com.example.p2pnetwork.services.ChatServerService;
 import com.example.p2pnetwork.services.ChatService;
 import com.example.p2pnetwork.services.MulticastService;
-import com.example.p2pnetwork.network.NetworkUtils;
-import com.example.p2pnetwork.models.NodeInfo;
-import com.example.p2pnetwork.adapters.NodesAdapter;
-import com.example.p2pnetwork.R;
 import com.example.p2pnetwork.services.StabilizationService;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // todo: kom med noget forklaring her (Chord)
         nodeList = new ArrayList<>();
         nodesAdapter = new NodesAdapter(nodeList);
         nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -110,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Starts the node discovery mechanism
-        startMulticastService(); // todo: tjek om den reelt set skal bruges
+        startMulticastService();
 
         // Other button click listener
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
@@ -142,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startMulticastService() {
-        InetAddress ip = NetworkUtils.getIPAddress(); // todo:
+        InetAddress ip = NetworkUtils.getIPAddress();
         //int port = NetworkUtils.getAvailablePort();
         int port = SERVER_PORT;
 
@@ -195,8 +183,6 @@ public class MainActivity extends AppCompatActivity {
                         leaveNetworkButton.setEnabled(true);
                         joinNetworkButton.setEnabled(false);
                     });
-
-                    //startTcpServer(); // Start the TCP server for chat
 
                     multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {
