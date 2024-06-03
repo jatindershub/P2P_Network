@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -12,11 +14,13 @@ import android.widget.Toast;
 import android.os.AsyncTask;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.p2pnetwork.models.Message;
 import com.example.p2pnetwork.network.ChordNode;
+import com.example.p2pnetwork.services.ChatServerService;
+import com.example.p2pnetwork.services.ChatService;
 import com.example.p2pnetwork.services.MulticastService;
 import com.example.p2pnetwork.network.NetworkUtils;
 import com.example.p2pnetwork.models.NodeInfo;
@@ -25,6 +29,7 @@ import com.example.p2pnetwork.R;
 import com.example.p2pnetwork.services.StabilizationService;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
@@ -34,7 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
     private ChordNode node;
     private MulticastService multicastService;
     private StabilizationService stabilizationService;
@@ -48,36 +52,16 @@ public class MainActivity extends AppCompatActivity {
     private EditText portInput;
     private Button startChatButton;
     private Button viewDetailsButton;
+    private ChatService chatService;
+    private ChatServerService chatServerService;
+    private static final int SERVER_PORT = 59342;
 
-    private BroadcastReceiver chatRequestReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String nodeId = intent.getStringExtra("nodeId");
-            String ip = intent.getStringExtra("ip");
-            int port = intent.getIntExtra("port", -1);
-
-
-            // Open chat window
-            Intent chatIntent = new Intent(MainActivity.this, ChatActivity.class);
-            chatIntent.putExtra("nodeId", nodeId);
-            chatIntent.putExtra("ip", ip);
-            chatIntent.putExtra("port", port);
-            startActivity(chatIntent);
-        }
-    };
-
-    /* onCreate is called only once throughout the entire lifecycle of the activity, meaning it’s the place to set up components that should persist for the life of the activity.
-    The method takes a Bundle parameter called savedInstanceState, which contains the activity's previously saved state.
-    If the activity is being re-initialized after previously being shut down, this bundle contains the data it most recently supplied in onSaveInstanceState.
-    This is useful for restoring the activity to its previous state.
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // findViewById() is used to find a view in the current layout hierarchy with the specified ID
-        // The R class is a generated class in Android that contains references to all the resources in your project
+        // Initialize views
         nodeStatus = findViewById(R.id.nodeStatus);
         joinNetworkButton = findViewById(R.id.joinNetworkButton);
         leaveNetworkButton = findViewById(R.id.leaveNetworkButton);
@@ -88,73 +72,80 @@ public class MainActivity extends AppCompatActivity {
         nodesRecyclerView = findViewById(R.id.nodesRecyclerView);
         startChatButton = findViewById(R.id.startChatButton);
 
-        // The OnClickListener is an interface used to receive click events
-        // The button startChatButton is listening if it is being pressed/clicked
-        startChatButton.setOnClickListener(v -> {
-            String ipAddress = ipAddressInput.getText().toString();
-            int port = Integer.parseInt(portInput.getText().toString());
+        // Start the TCP server
+        startServer();
 
-            // Creates an new intent object that will be used to start the ChatActivity class
-            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+        // Set up the button click listener
+        // TODO: HVOR BRUGES VIEW VIEW?
+        startChatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String ipAddress = ipAddressInput.getText().toString();
+                int port = Integer.parseInt(portInput.getText().toString());
 
-            // Passed extra data, that will be passed on to the ChatActivity class
-            intent.putExtra("ip", ipAddress);
-            intent.putExtra("port", port);
-            startActivity(intent);
+                // Connect to the server (self or other device)
+                chatService = new ChatService(ipAddress, port);
+                chatService.start();
+                chatService.setMessageListener(new ChatService.MessageListener() {
+                    @Override
+                    public void onMessageReceived(Message message) {
+                        // todo: handle receuved message
+                        Log.d("MainActivity", "Received message: " + message.getMessage());
+                    }
+                });
+            }
         });
 
-        // This initializes nodeList as an empty ArrayList of NodeInfo objects. nodeList will hold the data that the RecyclerView will display.
+        // todo: kom med noget forklaring her (Chord)
         nodeList = new ArrayList<>();
-
-        // This initializes nodesAdapter, an instance of the NodesAdapter class, passing nodeList to its constructor.
-        // NodesAdapter is the adapter for the RecyclerView, which binds the data in nodeList to the views displayed in each item of the RecyclerView.
         nodesAdapter = new NodesAdapter(nodeList);
-
-        // This sets the layout manager for nodesRecyclerView to a LinearLayoutManager.
-        // The LinearLayoutManager arranges the items in a vertical or horizontal scrolling list (default is vertical).
         nodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        // This sets the adapter for nodesRecyclerView to nodesAdapter. This connects the RecyclerView with its data and the logic to display it.
         nodesRecyclerView.setAdapter(nodesAdapter);
 
         // This sets an item click listener on the nodesAdapter.
-        // The setOnItemClickListener method is a method defined in the NodesAdapter class, which allows you to handle click events on items in the RecyclerView.
+        // The setOnItemClickListener method is a method defined in the NodesAdapter class,
+        // which allows you to handle click events on items in the RecyclerView.
         nodesAdapter.setOnItemClickListener(nodeInfo -> {
             ipAddressInput.setText(nodeInfo.getIp().getHostAddress());
             portInput.setText(String.valueOf(nodeInfo.getPort()));
         });
 
         // Starts the node discovery mechanism
-        startMulticastService();
+        startMulticastService(); // todo: tjek om den reelt set skal bruges
 
-        //LocalBroadcastManager.getInstance(this).registerReceiver(chatRequestReceiver, new IntentFilter("CHAT_REQUEST"));
-
-        // Register the BroadcastReceiver with the appropriate flag
-        IntentFilter filter = new IntentFilter("CHAT_REQUEST");
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            registerReceiver(chatRequestReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(chatRequestReceiver, filter);
-        }
-
+        // Other button click listener
         joinNetworkButton.setOnClickListener(v -> new Thread(this::joinNetwork).start());
         leaveNetworkButton.setOnClickListener(v -> new Thread(this::leaveNetwork).start());
         viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
-        //startChatButton.setOnClickListener(v -> startChat()); // todo:
+    }
+
+    private void startServer() {
+        chatServerService = new ChatServerService(SERVER_PORT);
+        chatServerService.start();
+        chatServerService.setMessageListener(new ChatServerService.MessageListener() {
+            @Override
+            public void onMessageReceived(Message message) {
+                // Handle received message
+                Log.d("MainActivity", "Received message: " + message.getMessage());
+            }
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //LocalBroadcastManager.getInstance(this).unregisterReceiver(chatRequestReceiver);
-
-        // Unregister the BroadcastReceiver
-        unregisterReceiver(chatRequestReceiver);
+        if (chatServerService != null) {
+            chatServerService.stop();
+        }
+        if (chatService != null) {
+            chatService.stop();
+        }
     }
 
     private void startMulticastService() {
-        InetAddress ip = NetworkUtils.getIPAddress();
-        int port = NetworkUtils.getAvailablePort();
+        InetAddress ip = NetworkUtils.getIPAddress(); // todo:
+        //int port = NetworkUtils.getAvailablePort();
+        int port = SERVER_PORT;
 
         // Conditional statement checks if the IP and port are valid
         if (ip != null && port != -1) {
@@ -165,62 +156,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startTcpServer() {
-        new Thread(() -> {
-            try {
-                ServerSocket serverSocket = new ServerSocket(node.getDynamicPort());
-                while (true) {
-                    Socket clientSocket = serverSocket.accept();
-                    new Thread(new ClientHandler(clientSocket)).start();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    private class ClientHandler implements Runnable {
-        private Socket clientSocket;
-
-        public ClientHandler(Socket socket) {
-            this.clientSocket = socket;
-        }
-
-        @Override
-        public void run() {
-            try {
-                BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                OutputStreamWriter output = new OutputStreamWriter(clientSocket.getOutputStream());
-
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "New chat request", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-                    intent.putExtra("ip", clientSocket.getInetAddress().getHostAddress());
-                    intent.putExtra("port", clientSocket.getPort());
-                    startActivity(intent);
-                });
-
-                String message;
-                while ((message = input.readLine()) != null) {
-                    // Handle incoming message
-                    // Update UI or notify user
-                }
-
-                clientSocket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     private void joinNetwork() {
         new Thread(() -> {
             try {
                 InetAddress ip = NetworkUtils.getIPAddress();
-                int port = NetworkUtils.getAvailablePort();
+                //int port = NetworkUtils.getAvailablePort();
+                int port = SERVER_PORT;
 
                 if (ip != null && port != -1) {
                     node = new ChordNode(ip, port);
+                    Log.d("joinNetwork", "Node initialized with IP: " + ip + " and port: " + port);
+
 
                     // Try to find an existing node to join the network
                     if (!nodeList.isEmpty()) {
@@ -251,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                         joinNetworkButton.setEnabled(false);
                     });
 
-                    startTcpServer(); // Start the TCP server for chat
+                    //startTcpServer(); // Start the TCP server for chat
 
                     multicastService.sendMulticastMessage("JOIN," + node.getNodeId() + "," + ip.getHostAddress() + "," + port);
                 } else {

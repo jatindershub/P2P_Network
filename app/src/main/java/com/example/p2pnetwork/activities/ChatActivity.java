@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.p2pnetwork.R;
 import com.example.p2pnetwork.models.Message;
+import com.example.p2pnetwork.services.ChatServerService;
 import com.example.p2pnetwork.services.ChatService;
 import com.google.gson.Gson;
 
@@ -26,9 +27,11 @@ public class ChatActivity extends AppCompatActivity {
     private EditText messageInput;
     private Button sendButton;
     private ChatService chatService;
+    private ChatServerService chatServerService;
     private String ipAddress;
     private String nodeId;
     private Gson gson = new Gson();
+    private boolean isServer;
 
     private BroadcastReceiver chatMessageReceiver = new BroadcastReceiver() {
         @Override
@@ -36,7 +39,10 @@ public class ChatActivity extends AppCompatActivity {
             String messageJson = intent.getStringExtra("message");
             Log.d("ChatActivity", "Broadcast received with message: " + messageJson);
             Message message = gson.fromJson(messageJson, Message.class);
-            runOnUiThread(() -> chatMessages.append("Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n"));
+            runOnUiThread(() -> {
+                Log.d("ChatActivity", "Updating UI with message: " + message.getMessage());
+                chatMessages.append("Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n");
+            });
         }
     };
 
@@ -49,43 +55,73 @@ public class ChatActivity extends AppCompatActivity {
         messageInput = findViewById(R.id.messageInput);
         sendButton = findViewById(R.id.sendButton);
 
-        ipAddress = getIntent().getStringExtra("ip"); // todo: "ipAddress"
+        ipAddress = getIntent().getStringExtra("ip");
         int port = getIntent().getIntExtra("port", -1);
         nodeId = getIntent().getStringExtra("nodeId");
+        isServer = getIntent().getBooleanExtra("isServer", false);
+
 
         // Initialize and start the ChatService
-        chatService = new ChatService(this, nodeId, ipAddress, port);
+        chatService = new ChatService(ipAddress, port);
         chatService.start();
 
-        // Update the UI when a new message is received
-        chatService.setMessageListener(new ChatService.MessageListener() {
-            @Override
-            public void onMessageReceived(Message message) {
-                runOnUiThread(() -> {
-                    Log.d("ChatActivity", "Updating UI with message: " + message.getMessage());
-                    chatMessages.append("Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n");
-                });
-            }
-        });
-
-        sendButton.setOnClickListener(v -> {
-            String messageText = messageInput.getText().toString();
-            String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-            Message message = new Message(messageText, timestamp, ipAddress);
-            chatService.sendMessage(message);
-            chatMessages.append("Me: " + message.getMessage() + " [" + message.getTimestamp() + "]\n");
-            messageInput.setText("");
-        });
-        // Register the BroadcastReceiver
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(chatMessageReceiver, new IntentFilter("CHAT_REQUEST"), Context.RECEIVER_NOT_EXPORTED);
+        if (isServer) {
+            chatServerService = new ChatServerService(port);
+            chatServerService.start();
+            chatServerService.setMessageListener(new ChatServerService.MessageListener() {
+                @Override
+                public void onMessageReceived(Message message) {
+                    runOnUiThread(() -> {
+                        Log.d("ChatActivity", "Updating UI with message: " + message.getMessage());
+                        chatMessages.append("Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n");
+                    });
+                }
+            });
+        } else {
+            chatService = new ChatService(ipAddress, port);  // Pass the context and node ID here
+            chatService.start();
+            chatService.setMessageListener(new ChatService.MessageListener() {
+                @Override
+                public void onMessageReceived(Message message) {
+                    runOnUiThread(() -> {
+                        Log.d("ChatActivity", "Updating UI with message: " + message.getMessage());
+                        chatMessages.append("Node [" + message.getIpAddress() + "]: " + message.getMessage() + "\n");
+                    });
+                }
+            });
         }
-    }
+            sendButton.setOnClickListener(v -> {
+                String messageText = messageInput.getText().toString();
+                String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+                Message message = new Message(messageText, timestamp, ipAddress);
+                if (isServer) {
+                    chatServerService.sendMessage(message);
+                } else {
+                    chatService.sendMessage(message);
+                }
+                chatMessages.append("Me: " + message.getMessage() + " [" + message.getTimestamp() + "]\n");
+                messageInput.setText("");
+                Log.d("ChatActivity", "Sent message: " + message.getMessage());
+            });
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        chatService.stop();
-        unregisterReceiver(chatMessageReceiver); // Unregister the BroadcastReceiver
+            // Register the BroadcastReceiver
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                registerReceiver(chatMessageReceiver, new IntentFilter("CHAT_REQUEST"), Context.RECEIVER_NOT_EXPORTED);
+            }
+            Log.d("ChatActivity", "BroadcastReceiver registered");
+        }
+
+        @Override
+        protected void onDestroy () {
+            super.onDestroy();
+            if (isServer) {
+                chatServerService.stop();
+            } else {
+                chatService.stop();
+            }
+
+            unregisterReceiver(chatMessageReceiver); // Unregister the BroadcastReceiver
+            Log.d("ChatActivity", "BroadcastReceiver unregistered");
+        }
+
     }
-}

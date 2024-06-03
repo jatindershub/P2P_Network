@@ -19,15 +19,11 @@ public class ChatService {
     private PrintWriter output;
     private String ipAddress;
     private int port;
-    private String nodeId;
     private MessageListener messageListener;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private Gson gson = new Gson();
-    private Context context;
 
-    public ChatService(Context context, String nodeId, String ipAddress, int port) {
-        this.context = context;
-        this.nodeId = nodeId;
+    public ChatService(String ipAddress, int port) {
         this.ipAddress = ipAddress;
         this.port = port;
     }
@@ -36,20 +32,13 @@ public class ChatService {
         new Thread(() -> {
             try {
                 socket = new Socket(ipAddress, port); // Establishing the TCP connection
-                input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                output = new PrintWriter(socket.getOutputStream(), true);
                 Log.d("ChatService", "TCP connection established with " + ipAddress + ":" + port);
 
+                input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                output = new PrintWriter(socket.getOutputStream(), true);
 
                 // Start listening for messages
                 listenForMessages();
-
-                // Send broadcast indicating chat has started
-                Intent broadcastIntent = new Intent("CHAT_REQUEST");
-                broadcastIntent.putExtra("nodeId", nodeId);
-                broadcastIntent.putExtra("ip", ipAddress);
-                broadcastIntent.putExtra("port", port);
-                context.sendBroadcast(broadcastIntent);
             } catch (IOException e) {
                 Log.e("ChatService", "Error establishing TCP connection", e);
                 e.printStackTrace();
@@ -64,15 +53,9 @@ public class ChatService {
                 Log.d("ChatService", "Received message: " + messageJson);
                 if (messageListener != null) {
                     Message message = gson.fromJson(messageJson, Message.class);
+                    Log.d("ChatService", "Passing message to listener: " + message.getMessage());
                     mainHandler.post(() -> messageListener.onMessageReceived(message));
                 }
-                // Send a broadcast when a new message is received
-                Intent broadcastIntent = new Intent("CHAT_REQUEST");
-                broadcastIntent.putExtra("nodeId", nodeId);
-                broadcastIntent.putExtra("ip", ipAddress);
-                broadcastIntent.putExtra("port", port);
-                broadcastIntent.putExtra("message", messageJson); // Include the message JSON
-                context.sendBroadcast(broadcastIntent);
             }
         } catch (IOException e) {
             Log.e("ChatService", "Error listening for messages", e);
@@ -99,12 +82,14 @@ public class ChatService {
                 socket.close();
             }
         } catch (IOException e) {
+            Log.e("ChatService", "Error closing socket", e);
             e.printStackTrace();
         }
     }
 
     public void setMessageListener(MessageListener listener) {
         this.messageListener = listener;
+        Log.d("ChatService", "MessageListener set");
     }
 
     public interface MessageListener {
