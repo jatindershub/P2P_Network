@@ -157,10 +157,10 @@ public class MainActivity extends AppCompatActivity {
 
                     // Try to find an existing node to join the network
                     if (!nodeList.isEmpty()) {
-                        NodeInfo bootstrapNodeInfo = nodeList.get(0); // Assuming the first node in the list as bootstrap
-                        ChordNode bootstrapNode = new ChordNode(bootstrapNodeInfo);
+                        NodeInfo anchorNodeInfo = nodeList.get(0); // Assuming the first node in the list as anchor
+                        ChordNode anchorNode = new ChordNode(anchorNodeInfo);
 
-                        ChordNode successor = bootstrapNode.findSuccessor(node.getNodeId());
+                        ChordNode successor = anchorNode.findSuccessor(node.getNodeId());
                         node.setSuccessor(successor);
                         node.setPredecessor(successor.getPredecessor());
                         successor.setPredecessor(node);
