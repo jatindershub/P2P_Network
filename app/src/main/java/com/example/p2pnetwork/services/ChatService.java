@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 import com.example.p2pnetwork.activities.ChatActivity;
+import com.example.p2pnetwork.helper.EncryptionHelper;
 import com.google.gson.Gson;
 import com.example.p2pnetwork.models.Message;
 
@@ -98,18 +99,38 @@ public class ChatService {
         Log.d("ChatService", "sendMessage called");
         new Thread(() -> {
             Log.d("ChatService", "sendMessage thread started");
-            waitForReady();
+            waitForReady(); // todo: der er noget med WaitForReady()
             Log.d("ChatService", "waitForReady completed");
             if (output != null) {
-                String messageJson = gson.toJson(message);
-                output.println(messageJson); // Send message over TCP connection
-                output.flush();
-                Log.d("ChatService", "Sent message: " + messageJson);
+                try {
+                    // Initialize keys if not already done
+                    EncryptionHelper.initializeKeys();
+
+                    // Convert the message to JSON
+                    String messageJson = gson.toJson(message);
+
+                    // Encrypt the message using AES
+                    String encryptedMessage = EncryptionHelper.encryptMessage(messageJson);
+
+                    // Create a SHA-256 hash of the original message
+                    String messageHash = EncryptionHelper.createHash(messageJson);
+
+                    // Concatenate the encrypted message and the hash
+                    String concatenatedMessage = encryptedMessage + ":" + messageHash;
+
+                    // Send the concatenated message over the TCP connection
+                    output.println(concatenatedMessage);
+                    output.flush();
+                    Log.d("ChatService", "Sent message: " + concatenatedMessage);
+                } catch (Exception e) {
+                    Log.e("ChatService", "Error sending message: " + e.getMessage());
+                }
             } else {
                 Log.e("ChatService", "Output stream is null, message not sent");
             }
         }).start();
     }
+
 
     private synchronized void waitForReady() {
         while (!isReady) {

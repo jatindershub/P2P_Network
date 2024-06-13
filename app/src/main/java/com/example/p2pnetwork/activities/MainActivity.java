@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize views
+        // Initialize the UI components by finding their respective views in the layout
         nodeStatus = findViewById(R.id.nodeStatus);
         joinNetworkButton = findViewById(R.id.joinNetworkButton);
         leaveNetworkButton = findViewById(R.id.leaveNetworkButton);
@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 String ipAddress = ipAddressInput.getText().toString();
                 int port = Integer.parseInt(portInput.getText().toString());
 
-                // Connect to the server (self or other device)
+                // Server
                 chatService = new ChatService(MainActivity.this, ipAddress, port);
                 chatService.start();
                 chatService.setMessageListener(new ChatService.MessageListener() {
@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         viewDetailsButton.setOnClickListener(v -> viewNodeDetails());
     }
 
+    // Server
     private void startServer() {
         chatServerService = new ChatServerService(MainActivity.this, SERVER_PORT);
         chatServerService.start();
@@ -204,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
                 leaveNetworkButton.setEnabled(false);
                 joinNetworkButton.setEnabled(true);
             });
+            // todo: der mangler en metode her, der går ind og updater selve nodelist
         }
     }
 
