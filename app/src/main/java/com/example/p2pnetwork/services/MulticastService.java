@@ -34,6 +34,7 @@ public class MulticastService extends Thread {
         this.nodeListUpdater = nodeListUpdater;
         this.dynamicPort = port;
         nodeList = new ArrayList<>();
+        
         try {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);
