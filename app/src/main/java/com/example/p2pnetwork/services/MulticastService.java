@@ -28,6 +28,7 @@ public class MulticastService extends Thread {
     private int dynamicPort;
     private static final int PORT = 5000;
     private static final String MULTICAST_ADDRESS = "224.0.0.1";
+    
     public MulticastService(ChordNode localNode, Consumer<List<NodeInfo>> nodeListUpdater, int port) {
         this.localNode = localNode;
         this.nodeListUpdater = nodeListUpdater;
