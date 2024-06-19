@@ -40,28 +40,19 @@ public class EncryptionHelper {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.ENCRYPT_MODE, aesKey);
         byte[] encryptedBytes = cipher.doFinal(message.getBytes());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return Base64.getEncoder().encodeToString(encryptedBytes);
-        }
-        return null;
+        return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
     public static String createHash(String message) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hashBytes = digest.digest(message.getBytes());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return Base64.getEncoder().encodeToString(hashBytes);
-        }
-        return null;
+        return Base64.getEncoder().encodeToString(hashBytes);
     }
 
     public static String decryptMessage(String encryptedMessage) throws Exception {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.DECRYPT_MODE, aesKey);
-        byte[] decryptedBytes = new byte[0];
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
-        }
+        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
         return new String(decryptedBytes);
     }
 
@@ -69,5 +60,20 @@ public class EncryptionHelper {
         String computedHash = createHash(message);
         return computedHash.equals(receivedHash);
     }
+
+    public static String encryptAESKey() throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encryptedKey = cipher.doFinal(aesKey.getEncoded());
+        return Base64.getEncoder().encodeToString(encryptedKey);
+    }
+
+    public static void decryptAESKey(String encryptedKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] decryptedKey = cipher.doFinal(Base64.getDecoder().decode(encryptedKey));
+        aesKey = new SecretKeySpec(decryptedKey, 0, decryptedKey.length, "AES");
+    }
 }
+
 

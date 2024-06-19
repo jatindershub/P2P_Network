@@ -95,6 +95,36 @@ public class ChatService {
         }
     }
 
+    public void receiveMessage(String concatenatedMessage) {
+        try {
+            // Split the concatenated message into encrypted message, encrypted AES key, and hash
+            String[] parts = concatenatedMessage.split(":");
+            String encryptedMessage = parts[0];
+            String encryptedAESKey = parts[1];
+            String receivedHash = parts[2];
+
+            // Decrypt the AES key using RSA private key
+            EncryptionHelper.decryptAESKey(encryptedAESKey);
+
+            // Decrypt the message using AES
+            String decryptedMessage = EncryptionHelper.decryptMessage(encryptedMessage);
+
+            // Verify the hash
+            boolean isHashValid = EncryptionHelper.verifyHash(decryptedMessage, receivedHash);
+
+            if (isHashValid) {
+                // Process the message
+                Message message = gson.fromJson(decryptedMessage, Message.class);
+                // Handle the received message
+            } else {
+                Log.e("ChatService", "Message hash verification failed");
+            }
+        } catch (Exception e) {
+            Log.e("ChatService", "Error receiving message: " + e.getMessage());
+        }
+    }
+
+
     public void sendMessage(Message message) {
         Log.d("ChatService", "sendMessage called");
         new Thread(() -> {
@@ -112,11 +142,14 @@ public class ChatService {
                     // Encrypt the message using AES
                     String encryptedMessage = EncryptionHelper.encryptMessage(messageJson);
 
+                    // Encrypt the AES key with RSA public key
+                    String encryptedAESKey = EncryptionHelper.encryptAESKey();
+
                     // Create a SHA-256 hash of the original message
                     String messageHash = EncryptionHelper.createHash(messageJson);
 
-                    // Concatenate the encrypted message and the hash
-                    String concatenatedMessage = encryptedMessage + ":" + messageHash;
+                    // Concatenate the encrypted message, encrypted AES key, and the hash
+                    String concatenatedMessage = encryptedMessage + ":" + encryptedAESKey + ":" + messageHash;
 
                     // Send the concatenated message over the TCP connection
                     output.println(concatenatedMessage);
@@ -130,6 +163,7 @@ public class ChatService {
             }
         }).start();
     }
+
 
 
     private synchronized void waitForReady() {
